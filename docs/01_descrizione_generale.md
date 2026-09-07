@@ -2,9 +2,17 @@
 ## 01. Descrizione Generale del Progetto
 
 ### 1.1 Visione e Obiettivo
-**Pro-Local** è una piattaforma digitale modulare concepita per supportare in modo efficiente, trasparente e sicuro la gestione amministrativa, deliberativa e documentale di un'associazione.
+**Pro-Local** è una piattaforma digitale modulare concepita per supportare in modo efficiente, trasparente e sicuro la vita e l'operatività di un'associazione locale.
 
-Il progetto nasce con l'intento di fornire una base tecnologica solida e manutenibile nel tempo, evitando soluzioni usa-e-getta o architetture improvvisate.
+Il progetto unisce in un unico ecosistema integrato due dimensioni strettamente collegate:
+1. **Gestione digitale dell'associazione:** amministrazione interna, libro soci, organi statutari (Consiglio Direttivo, Assemblea), verbali, votazioni e conformità giuridica.
+2. **Portale / Vetrina pubblica delle attività dei soci:** cuore pulsante della piattaforma, che valorizza le competenze, i servizi e le attività economiche, artigianali e professionali degli associati sul territorio locale.
+
+### 1.1.1 La Regola Fondamentale della Vetrina
+La vetrina pubblica opera secondo un vincolo statutario inscindibile:
+> **Un'attività può essere pubblicata ed esposta nella vetrina SOLO se è collegata a una persona che risulta SOCIO ATTIVO dell'associazione Pro-Local.**
+
+La perdita, la sospensione o il mancato perfezionamento dello status di "Socio Attivo" determina automaticamente l'immediata disattivazione della visibilità pubblica dell'attività nella vetrina. Non sono previste eccezioni commerciali o abbonamenti svincolati dal vincolo sociale.
 
 ### 1.2 Natura Giuridica dell'Ente
 * **Stato Attuale:** Associazione non riconosciuta (ai sensi degli artt. 36 e ss. del Codice Civile italiano).

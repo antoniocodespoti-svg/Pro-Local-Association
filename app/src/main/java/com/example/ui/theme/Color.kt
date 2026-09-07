@@ -32,3 +32,25 @@ val StateToDefineAmberText = Color(0xFF92400E)
 val LegalWarningBg = Color(0xFFEFF6FF)
 val LegalWarningBorder = Color(0xFF93C5FD)
 val LegalWarningText = Color(0xFF1E3A8A)
+
+// Accento Oro Istituzionale e Vetrina Digitale
+val CivicGold = Color(0xFFD97706)
+val CivicGoldDark = Color(0xFFB45309)
+val CivicGoldLight = Color(0xFFFEF3C7)
+val CivicGoldSurface = Color(0xFFFFFBEB)
+val CivicGoldBorder = Color(0xFFFDE68A)
+val CivicGoldText = Color(0xFF78350F)
+
+// Stati Vetrina Pubblicazione
+val StatusPubblicataBg = Color(0xFFECFDF5)
+val StatusPubblicataBorder = Color(0xFFA7F3D0)
+val StatusPubblicataText = Color(0xFF065F46)
+
+val StatusAttesaBg = Color(0xFFFFFBEB)
+val StatusAttesaBorder = Color(0xFFFDE68A)
+val StatusAttesaText = Color(0xFF92400E)
+
+val StatusSospesaBg = Color(0xFFFEF2F2)
+val StatusSospesaBorder = Color(0xFFFECACA)
+val StatusSospesaText = Color(0xFF991B1B)
+

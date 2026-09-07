@@ -1,6 +1,9 @@
 package com.example.core.model
 
 enum class ModuleKey(val slug: String, val title: String) {
+    VETRINA("vetrina", "Vetrina Attività"),
+    AREA_SOCIO("area_socio", "Area Socio"),
+    AMMINISTRAZIONE("amministrazione", "Amministrazione"),
     DASHBOARD("dashboard", "Dashboard"),
     CONSIGLIO("consiglio", "Organi & Consiglio"),
     ASSOCIATI("associati", "Associati"),

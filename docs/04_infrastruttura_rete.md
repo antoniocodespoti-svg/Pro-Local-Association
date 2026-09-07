@@ -1,23 +1,21 @@
 # Pro-Local - Documentazione di Progetto
 ## 04. Infrastruttura e Rete
 
-### 4.1 Fase 1: Ambiente Locale e Dimostrativo
-* **Esecuzione:** Client-side standalone su runtime Kotlin/Compose.
-* **Persistenza:** Memoria locale applicativa (in-memory mock con modelli persistibili).
-* **Dipendenze Esterne:** Nessuna chiamata di rete attiva in questa fase; assenza di dipendenze di rete bloccanti.
+### 4.1 Architettura Attuale: Client Standalone Reattivo
+* **Esecuzione:** Client-side reattivo su runtime Kotlin/Compose.
+* **Persistenza & Stato:** Gestione dello stato in-memory reattiva (`StateFlow`), che garantisce il ricalcolo istantaneo delle viste pubbliche in funzione delle variazioni dello stato associativo.
+* **Dipendenze Esterne:** Nessuna chiamata a servizi di terze parti o librerie di tracciamento commerciale esterne; assenza totale di dipendenze hardware bloccanti.
 
-### 4.2 Fase Futura: Pubblicazione Online e Rete [DA DEFINIRE]
-Per la futura pubblicazione online come servizio cloud per l'associazione, l'infrastruttura di riferimento prevista comprende:
+### 4.2 Progettazione Rete per la Piattaforma Online [DA DEFINIRE]
+La natura bivalente di Pro-Local (vetrina pubblica + gestione interna) guida l'architettura di rete:
 
-1. **Protocolli e Cifratura:**
-   - HTTPS / TLS 1.3 obbligatorio per tutte le comunicazioni.
-   - HSTS (HTTP Strict Transport Security) per prevenire downgrade.
-2. **Backend e API [DA DEFINIRE]:**
-   - API RESTful o gRPC per il dialogo tra frontend web/mobile e server.
-   - Gateway con Rate Limiting e protezione DDoS.
+1. **Vetrina Pubblica ad Alta Efficienza (Read-Heavy):**
+   - Esposizione pubblica delle schede attività tramite Edge Caching / CDN.
+   - Invalida automatica della cache non appena lo stato di un socio cambia da "ATTIVO" a "SOSPESO" o "DECADUTO" per garantire il rispetto assoluto della Regola Fondamentale.
+   - Nessun cookie di profilazione o tracciamento commerciale di terze parti.
+2. **Area Riservata Soci e Amministrazione (Protected API):**
+   - Accesso protetto tramite canale TLS 1.3 / HTTPS con autenticazione a due fattori (2FA) raccomandata per gli amministratori.
+   - Sessioni con token a scadenza temporale e refresh protetto.
 3. **Database e Storage [DA DEFINIRE]:**
-   - Database relazionale (PostgreSQL / SQLite con crittografia at-rest) per la gestione di libro soci, verbali e deliberazioni.
-   - Storage cifrato (es. S3-compatible / Cloud Storage con ACL private) per i documenti PDF dei verbali e degli allegati.
-4. **Ambiente di Hosting [DA DEFINIRE]:**
-   - Container Docker / Kubernetes o Cloud Server con geolocalizzazione dei dati in conformità con la normativa europea (GDPR).
-   - Backup periodici automatizzati e cifrati off-site.
+   - Database relazionale (PostgreSQL / SQLite con crittografia at-rest) con vincoli di integrità referenziale rigidi tra `Socio` e `Attivita`.
+   - Storage cifrato (es. S3-compatible / Cloud Storage con ACL private) per verbali e documenti statutari.

@@ -28,14 +28,19 @@ L'applicazione è strutturata secondo il principio di **Separazione delle Respon
 ### 3.2 Modularità dei Componenti
 1. **Core Domain (`com.example.core.model`):**
    - Modelli puri Kotlin indipendenti da framework di persistenza o UI.
-   - Entità: `CouncilMember`, `InternalRole`, `CouncilResolution`, `AssociationStatus`, `AuditLogEntry`, `ProjectModule`.
+   - Entità Governance: `CouncilMember`, `InternalRole`, `CouncilResolution`, `AssociationStatus`, `AuditLogEntry`, `ProjectModule`.
+   - Entità Vetrina e Soci: `Member` (stato associativo, quota), `BusinessActivity` (scheda attività economica, recapiti, servizi, stato pubblicazione), `ActivityCategory`, `PublicationStatus`, `MembershipStatus`.
 2. **Data Layer Abstraction (`com.example.core.data`):**
-   - L'interfaccia `ProLocalRepository` espone flussi reattivi (`StateFlow` / `Flow`).
-   - L'implementazione attuale fornisce dati dimostrativi controllati senza dipendenze hardware o esterne.
+   - L'interfaccia `ProLocalRepository` espone flussi reattivi (`StateFlow` / `Flow` per `members`, `activities`, `councilMembers`, `councilResolutions`, `auditLogs`).
+   - L'implementazione attuale `DemoProLocalRepository` fornisce dati dimostrativi controllati con aggiornamento reattivo di stato.
+   - La regola di visibilità fondamentale è incapsulata a livello di dominio (`BusinessActivity.isVisibileInVetrina(memberStatus)`) e valutata in tempo reale.
    - La migrazione a un database SQLite/Room o API REST non richiederà modifiche alla UI o alla logica di business.
 3. **Presentation Layer (`com.example.ui`):**
-   - Componenti atomici riutilizzabili (`StatusBadge`, `StatCard`, `RuleCard`, `AuditLogItem`).
-   - Layout responsive adattivo (compatto per smartphone, medio/espanso per tablet e desktop con NavigationRail).
+   - Modulo Vetrina (`com.example.ui.showcase`): `ShowcaseScreen`, `ActivityDetailSheet`, filtri settoriali e geografici.
+   - Modulo Area Socio (`com.example.ui.member`): `MemberAreaScreen`, compilatore scheda attività, selettore persona demo.
+   - Modulo Amministrazione (`com.example.ui.admin`): `ShowcaseAdminScreen`, coda di revisione pubblicazioni, gestione libro soci in tempo reale, RBAC matrix, audit log.
+   - Moduli Istituzionali: `CouncilScreen`, `DashboardScreen`, `ProjectDocsScreen`, `ModularPlaceholdersScreen`.
+   - Layout responsive adattivo (compatto per smartphone con NavigationBar, medio/espanso per tablet e desktop con NavigationRail permanente).
 
 ### 3.3 Gestione della Sicurezza e Privacy
 - Separazione tra dati anagrafici dimostrativi e dati reali.

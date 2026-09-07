@@ -1,6 +1,6 @@
 {
   "name": "Pro-Local",
-  "description": "Piattaforma modulare per la gestione digitale dell'associazione",
+  "description": "Piattaforma per la gestione digitale dell'associazione e vetrina pubblica delle attività dei soci",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

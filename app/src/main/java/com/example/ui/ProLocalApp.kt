@@ -26,6 +26,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.AdminPanelSettings
+import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Gavel
@@ -36,6 +37,8 @@ import androidx.compose.material.icons.filled.Mail
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -78,11 +81,14 @@ import androidx.compose.ui.unit.sp
 import com.example.core.data.ProLocalRepository
 import com.example.core.model.DefinitionState
 import com.example.core.model.ModuleKey
+import com.example.ui.admin.ShowcaseAdminScreen
 import com.example.ui.components.DefinitionBadge
 import com.example.ui.council.CouncilScreen
 import com.example.ui.dashboard.DashboardScreen
 import com.example.ui.docs.ProjectDocsScreen
+import com.example.ui.member.MemberAreaScreen
 import com.example.ui.modules.ModularPlaceholdersScreen
+import com.example.ui.showcase.ShowcaseScreen
 import com.example.ui.theme.CivicBlue600
 import com.example.ui.theme.CivicNavy700
 import com.example.ui.theme.CivicNavy800
@@ -103,14 +109,17 @@ data class NavItem(
 )
 
 val AllNavItems = listOf(
-    NavItem(ModuleKey.DASHBOARD, "Dashboard", Icons.Default.Dashboard, isPrimaryBottom = true),
+    NavItem(ModuleKey.VETRINA, "Vetrina Soci", Icons.Default.Storefront, isPrimaryBottom = true),
+    NavItem(ModuleKey.AREA_SOCIO, "Area Socio", Icons.Default.Badge, isPrimaryBottom = true),
+    NavItem(ModuleKey.AMMINISTRAZIONE, "Amministrazione", Icons.Default.AdminPanelSettings, isPrimaryBottom = true),
     NavItem(ModuleKey.CONSIGLIO, "Consiglio", Icons.Default.Gavel, isPrimaryBottom = true),
+    NavItem(ModuleKey.DASHBOARD, "Dashboard", Icons.Default.Dashboard, isPrimaryBottom = true),
+    NavItem(ModuleKey.DOCUMENTAZIONE, "Documentazione", Icons.Default.MenuBook, isPrimaryBottom = false),
     NavItem(ModuleKey.ASSOCIATI, "Associati", Icons.Default.People, isPrimaryBottom = false),
     NavItem(ModuleKey.ASSEMBLEA, "Assemblea", Icons.Default.HowToVote, isPrimaryBottom = false),
-    NavItem(ModuleKey.DOCUMENTI, "Documenti", Icons.Default.Description, isPrimaryBottom = false),
+    NavItem(ModuleKey.DOCUMENTI, "Atti & Verbali", Icons.Default.Description, isPrimaryBottom = false),
     NavItem(ModuleKey.COMUNICAZIONI, "Comunicazioni", Icons.Default.Mail, isPrimaryBottom = false),
-    NavItem(ModuleKey.RUOLI, "Ruoli & Permessi", Icons.Default.AdminPanelSettings, isPrimaryBottom = false),
-    NavItem(ModuleKey.DOCUMENTAZIONE, "Documentazione", Icons.Default.MenuBook, isPrimaryBottom = true)
+    NavItem(ModuleKey.RUOLI, "Ruoli & Permessi", Icons.Default.Security, isPrimaryBottom = false)
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -119,7 +128,7 @@ fun ProLocalApp(
     repository: ProLocalRepository,
     modifier: Modifier = Modifier
 ) {
-    var currentModuleKey by remember { mutableStateOf(ModuleKey.DASHBOARD) }
+    var currentModuleKey by remember { mutableStateOf(ModuleKey.VETRINA) }
     var showProjectInfoDialog by remember { mutableStateOf(false) }
 
     val modules by repository.projectModules.collectAsState()
@@ -451,6 +460,19 @@ private fun MainScreenContent(
 ) {
     Box(modifier = modifier.fillMaxSize()) {
         when (currentKey) {
+            ModuleKey.VETRINA -> ShowcaseScreen(
+                repository = repository,
+                onNavigateToMemberArea = { onNavigate(ModuleKey.AREA_SOCIO) },
+                onNavigateToAdmin = { onNavigate(ModuleKey.AMMINISTRAZIONE) }
+            )
+            ModuleKey.AREA_SOCIO -> MemberAreaScreen(
+                repository = repository,
+                onNavigateToShowcase = { onNavigate(ModuleKey.VETRINA) }
+            )
+            ModuleKey.AMMINISTRAZIONE -> ShowcaseAdminScreen(
+                repository = repository,
+                onNavigateToShowcase = { onNavigate(ModuleKey.VETRINA) }
+            )
             ModuleKey.DASHBOARD -> DashboardScreen(
                 repository = repository,
                 onNavigateToModule = onNavigate

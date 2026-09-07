@@ -1,7 +1,9 @@
 package com.example.core.data
 
+import com.example.core.model.ActivityCategory
 import com.example.core.model.AssociationInfo
 import com.example.core.model.AuditLogEntry
+import com.example.core.model.BusinessActivity
 import com.example.core.model.CouncilMember
 import com.example.core.model.CouncilResolutionDemo
 import com.example.core.model.CouncilRuleItem
@@ -9,11 +11,14 @@ import com.example.core.model.DefinitionState
 import com.example.core.model.DocCategory
 import com.example.core.model.DocSection
 import com.example.core.model.InternalRole
+import com.example.core.model.Member
 import com.example.core.model.MemberCouncilStatus
+import com.example.core.model.MembershipStatus
 import com.example.core.model.ModuleKey
 import com.example.core.model.NonElettoCandidate
 import com.example.core.model.ProjectDocument
 import com.example.core.model.ProjectModule
+import com.example.core.model.PublicationStatus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -229,6 +234,60 @@ class DemoProLocalRepository : ProLocalRepository {
 
     private val _projectModules = MutableStateFlow(
         listOf(
+            ProjectModule(
+                key = ModuleKey.VETRINA,
+                titolo = "Vetrina Attività Soci",
+                sottotitolo = "Portale pubblico di ricerca e consultazione attività della rete Pro-Local",
+                iconName = "storefront",
+                statoDefinizione = DefinitionState.DEFINITO,
+                elementiDefiniti = listOf(
+                    "Ricerca per servizio, categoria e località",
+                    "Regola fondamentale: pubblicazione riservata esclusivamente ai soci attivi",
+                    "Scheda pubblica dettagliata con contatti e servizi",
+                    "Badge certificazione socio Pro-Local attivo"
+                ),
+                elementiDaDefinire = listOf(
+                    "Geolocalizzazione interattiva su mappa [DA DEFINIRE]",
+                    "Attività multiple per singolo socio (1 -> N esteso) [DA DEFINIRE]"
+                ),
+                descrizioneFunzionale = "Cuore pubblico della piattaforma: permette ai cittadini di trovare attività professionali e artigianali certificate dalla rete associativa."
+            ),
+            ProjectModule(
+                key = ModuleKey.AREA_SOCIO,
+                titolo = "Area Riservata Socio",
+                sottotitolo = "Gestione profilo socio, stato associativo e scheda attività",
+                iconName = "badge",
+                statoDefinizione = DefinitionState.DEFINITO,
+                elementiDefiniti = listOf(
+                    "Visualizzazione anagrafica e stato associativo dimostrativo",
+                    "Compilazione e modifica scheda attività",
+                    "Richiesta formale di pubblicazione nella vetrina",
+                    "Blocco automatico se lo stato socio non è attivo"
+                ),
+                elementiDaDefinire = listOf(
+                    "Rinnovo telematico quota sociale [DA DEFINIRE]",
+                    "Upload autonomo file multimediali e loghi [DA DEFINIRE]"
+                ),
+                descrizioneFunzionale = "Sezione self-service per gli associati: controllo della propria posizione e manutenzione della propria presenza pubblica."
+            ),
+            ProjectModule(
+                key = ModuleKey.AMMINISTRAZIONE,
+                titolo = "Amministrazione & Controllo",
+                sottotitolo = "Validazione pubblicazioni, registro soci e vigilanza conformità",
+                iconName = "admin_panel_settings",
+                statoDefinizione = DefinitionState.DEFINITO,
+                elementiDefiniti = listOf(
+                    "Elenco soci e monitoraggio stato associativo",
+                    "Approvazione, sospensione o disattivazione pubblicazione attività",
+                    "Tracciamento completo nel registro di audit",
+                    "Applicazione in tempo reale della revoca visibilità pubblica per soci sospesi"
+                ),
+                elementiDaDefinire = listOf(
+                    "Workflow multi-livello con parere del Consiglio [DA DEFINIRE]",
+                    "Notifiche automatiche via email/PEC ai soci [DA DEFINIRE]"
+                ),
+                descrizioneFunzionale = "Pannello per gli organi associativi preposti al controllo e all'ammissione delle schede nella vetrina pubblica."
+            ),
             ProjectModule(
                 key = ModuleKey.DASHBOARD,
                 titolo = "Dashboard Istituzionale",
@@ -602,5 +661,396 @@ class DemoProLocalRepository : ProLocalRepository {
             livello = livello
         )
         _auditLogs.value = listOf(entry) + _auditLogs.value
+    }
+
+    // ==========================================
+    // DIMENSIONE VETRINA DELLE ATTIVITÀ DEI SOCI
+    // ==========================================
+
+    private val _members = MutableStateFlow<List<Member>>(
+        listOf(
+            Member(
+                id = "mem-01",
+                codiceSocio = "SOC-2024-001",
+                nomeCognome = "Marco Rossi (Demo)",
+                emailDemo = "m.rossi.socio@demo-prolocal.it",
+                dataIscrizione = "10/01/2024",
+                statoAssociativo = MembershipStatus.ATTIVO,
+                quotaSocialeInRegola = true,
+                noteAmministrativeInterne = "Socio fondatore, quota 2024 regolarizzata"
+            ),
+            Member(
+                id = "mem-02",
+                codiceSocio = "SOC-2024-002",
+                nomeCognome = "Elena Esposito (Demo)",
+                emailDemo = "e.esposito.socio@demo-prolocal.it",
+                dataIscrizione = "15/01/2024",
+                statoAssociativo = MembershipStatus.ATTIVO,
+                quotaSocialeInRegola = true,
+                noteAmministrativeInterne = "Consulente iscritta all'albo, quota versata"
+            ),
+            Member(
+                id = "mem-03",
+                codiceSocio = "SOC-2024-003",
+                nomeCognome = "Antonio Romano (Demo)",
+                emailDemo = "a.romano.socio@demo-prolocal.it",
+                dataIscrizione = "02/02/2024",
+                statoAssociativo = MembershipStatus.ATTIVO,
+                quotaSocialeInRegola = true,
+                noteAmministrativeInterne = "Azienda agricola e agriturismo locale"
+            ),
+            Member(
+                id = "mem-04",
+                codiceSocio = "SOC-2024-004",
+                nomeCognome = "Chiara Fontana (Demo)",
+                emailDemo = "c.fontana.socio@demo-prolocal.it",
+                dataIscrizione = "20/02/2024",
+                statoAssociativo = MembershipStatus.ATTIVO,
+                quotaSocialeInRegola = true,
+                noteAmministrativeInterne = "Sviluppatrice web, quota sociale attiva"
+            ),
+            Member(
+                id = "mem-05",
+                codiceSocio = "SOC-2024-005",
+                nomeCognome = "Davide Greco (Demo)",
+                emailDemo = "d.greco.socio@demo-prolocal.it",
+                dataIscrizione = "05/03/2024",
+                statoAssociativo = MembershipStatus.ATTIVO,
+                quotaSocialeInRegola = true,
+                noteAmministrativeInterne = "Operatore olistico e posturale"
+            ),
+            Member(
+                id = "mem-06",
+                codiceSocio = "SOC-2024-006",
+                nomeCognome = "Francesca Neri (Demo)",
+                emailDemo = "f.neri.socio@demo-prolocal.it",
+                dataIscrizione = "18/03/2024",
+                statoAssociativo = MembershipStatus.SOSPESO,
+                quotaSocialeInRegola = false,
+                noteAmministrativeInterne = "In sospensione per rinnovo quota associativa annuale"
+            ),
+            Member(
+                id = "mem-07",
+                codiceSocio = "SOC-2024-007",
+                nomeCognome = "Giuseppe Verdi (Demo)",
+                emailDemo = "g.verdi.socio@demo-prolocal.it",
+                dataIscrizione = "12/04/2024",
+                statoAssociativo = MembershipStatus.ATTIVO,
+                quotaSocialeInRegola = true,
+                noteAmministrativeInterne = "Manutenzioni civili e verde"
+            )
+        )
+    )
+    override val members: StateFlow<List<Member>> = _members.asStateFlow()
+
+    private val _activities = MutableStateFlow<List<BusinessActivity>>(
+        listOf(
+            BusinessActivity(
+                id = "act-01",
+                memberId = "mem-01",
+                nomeAttivita = "Bottega d'Arte & Restauro Lignea",
+                categoria = ActivityCategory.ARTIGIANATO_RESTAURO,
+                descrizioneBreve = "Restauro specialistico di arredi d'epoca, doratura a foglia e intaglio artigianale tradizionale.",
+                descrizioneCompleta = "La Bottega d'Arte nasce dalla passione per la conservazione del patrimonio ligneo storico. Eseguiamo interventi di restauro conservativo, lucidatura a tampone con gommalacca, trattamenti antitarlo eco-compatibili e ricostruzione artistica parti mancanti.",
+                serviziOfferti = listOf(
+                    "Restauro conservativo mobili antichi",
+                    "Lucidatura a tampone gommalacca",
+                    "Doratura a foglia d'oro",
+                    "Trattamenti antitarlo atossici",
+                    "Falegnameria artigianale su misura"
+                ),
+                localita = "Roma - Rione Monti",
+                indirizzoPubblico = "Via dei Serpenti, 48 - Roma",
+                telefonoPubblico = "+39 06 4829100",
+                emailPubblica = "bottega.lignea@prolocal-demo.it",
+                sitoWeb = "https://bottegalignea.demo-prolocal.it",
+                socialInstagram = "@bottega_lignea_roma",
+                socialLinkedin = "linkedin.com/company/bottega-lignea-demo",
+                orariApertura = "Lun - Ven: 09:00 - 13:00 / 15:30 - 19:00",
+                statoPubblicazione = PublicationStatus.PUBBLICATA,
+                dataUltimoAggiornamento = "01/09/2026",
+                noteRevisioneAdmin = "Scheda verificata e conforme al regolamento Pro-Local"
+            ),
+            BusinessActivity(
+                id = "act-02",
+                memberId = "mem-02",
+                nomeAttivita = "Studio Fiscale & Terzo Settore",
+                categoria = ActivityCategory.CONSULENZA_PROFESSIONALE,
+                descrizioneBreve = "Consulenza contabile, tributaria e statutaria specializzata per ETS, ODV, APS e professionisti.",
+                descrizioneCompleta = "Supportiamo associazioni, enti del terzo settore e liberi professionisti nell'adempimento delle normative fiscali e amministrative. Assistenza per pratiche RUNTS, bilanci d'esercizio, rendicontazione cinque per mille e consulenza contabile.",
+                serviziOfferti = listOf(
+                    "Iscrizione e gestione adempimenti RUNTS",
+                    "Bilanci di esercizio per ETS e associazioni",
+                    "Consulenza contabile e fiscale ordinaria",
+                    "Rendicontazione contributi pubblici e 5x1000",
+                    "Redazione e adeguamento statuti sociali"
+                ),
+                localita = "Roma - Quartiere San Giovanni",
+                indirizzoPubblico = "Via Appia Nuova, 120 - Roma",
+                telefonoPubblico = "+39 06 7045120",
+                emailPubblica = "studio.terzosettore@prolocal-demo.it",
+                sitoWeb = "https://studioterzosettore.demo-prolocal.it",
+                socialInstagram = "@studio_ets_roma",
+                socialLinkedin = "linkedin.com/in/elena-esposito-ets-demo",
+                orariApertura = "Lun - Gio: 09:00 - 18:00 | Ven: 09:00 - 14:00",
+                statoPubblicazione = PublicationStatus.PUBBLICATA,
+                dataUltimoAggiornamento = "03/09/2026",
+                noteRevisioneAdmin = "Confermata iscrizione all'albo e status socio attivo"
+            ),
+            BusinessActivity(
+                id = "act-03",
+                memberId = "mem-03",
+                nomeAttivita = "Sapori del Borgo - Frascati Tipica",
+                categoria = ActivityCategory.ENOGASTRONOMIA_LOCALE,
+                descrizioneBreve = "Azienda agricola biologica, degustazioni guidate, oli extravergini e vini DOC dei Castelli.",
+                descrizioneCompleta = "Coltiviamo la terra con metodi biologici certificati per valorizzare le cultivar tradizionali dei Castelli Romani. Proponiamo degustazioni guidate in vigneto, vendita diretta di olio extravergine spremuto a freddo e conserve tipiche.",
+                serviziOfferti = listOf(
+                    "Vendita diretta olio EVO bio e vini tipici",
+                    "Degustazioni guidate per gruppi e soci",
+                    "Laboratori di raccolta olive e vendemmia",
+                    "Confezioni regalo e cesti enogastronomici",
+                    "Forniture a km zero per eventi"
+                ),
+                localita = "Castelli Romani - Frascati",
+                indirizzoPubblico = "Via dei Vigneti, 14 - Frascati (RM)",
+                telefonoPubblico = "+39 06 9421880",
+                emailPubblica = "saporidelborgo@prolocal-demo.it",
+                sitoWeb = "https://saporidelborgo.demo-prolocal.it",
+                socialInstagram = "@saporidelborgo_frascati",
+                socialLinkedin = "",
+                orariApertura = "Mar - Dom: 10:00 - 19:30",
+                statoPubblicazione = PublicationStatus.PUBBLICATA,
+                dataUltimoAggiornamento = "28/08/2026",
+                noteRevisioneAdmin = "Approvata come presidio di eccellenza territoriale"
+            ),
+            BusinessActivity(
+                id = "act-04",
+                memberId = "mem-04",
+                nomeAttivita = "Officina Digitale & Soluzioni Web",
+                categoria = ActivityCategory.INFORMATICA_DIGITALE,
+                descrizioneBreve = "Progettazione siti web accessibili, identità visiva, SEO etico e supporto IT per enti e PMI.",
+                descrizioneCompleta = "Ci occupiamo di sviluppo web moderno (React, Compose, Kotlin), accessibilità WCAG, identità visiva coordinata e supporto tecnologico etico per piccole realtà e associazioni territoriali.",
+                serviziOfferti = listOf(
+                    "Sviluppo siti web e portali vetrina responsive",
+                    "Ottimizzazione accessibilità e conformità GDPR",
+                    "Brand identity, grafica per stampa e social",
+                    "Supporto tecnico hardware e sicurezza reti",
+                    "Formazione digitale per volontari e operatori"
+                ),
+                localita = "Roma - EUR / Laurentina",
+                indirizzoPubblico = "Viale Europa, 85 - Roma",
+                telefonoPubblico = "+39 06 5912300",
+                emailPubblica = "officinadigitale@prolocal-demo.it",
+                sitoWeb = "https://officinadigitale.demo-prolocal.it",
+                socialInstagram = "@officina_digitale_web",
+                socialLinkedin = "linkedin.com/company/officina-digitale-demo",
+                orariApertura = "Lun - Ven: 09:30 - 18:30",
+                statoPubblicazione = PublicationStatus.PUBBLICATA,
+                dataUltimoAggiornamento = "02/09/2026",
+                noteRevisioneAdmin = "Conforme agli standard di sicurezza informatica"
+            ),
+            BusinessActivity(
+                id = "act-05",
+                memberId = "mem-05",
+                nomeAttivita = "Spazio Olistico Armonia & Respiro",
+                categoria = ActivityCategory.BENESSERE_PERSONA,
+                descrizioneBreve = "Percorsi di rieducazione posturale dolce, mindfulness, massaggio decontratturante e benessere naturale.",
+                descrizioneCompleta = "Uno spazio rigenerante nel cuore di Monteverde dedicato al riequilibrio psicofisico. Proponiamo sessioni individuali di ginnastica posturale, rilassamento guidato e trattamenti personalizzati.",
+                serviziOfferti = listOf(
+                    "Ginnastica posturale dolce individuale",
+                    "Trattamenti benessere e decontratturanti",
+                    "Sessioni guidate di meditazione e rilassamento",
+                    "Consulenza naturopatica e stile di vita sano",
+                    "Workshop di igiene posturale per il lavoro"
+                ),
+                localita = "Roma - Monteverde",
+                indirizzoPubblico = "Via Carini, 32 - Roma",
+                telefonoPubblico = "+39 06 5894120",
+                emailPubblica = "armonia.respiro@prolocal-demo.it",
+                sitoWeb = "https://armoniaerespiro.demo-prolocal.it",
+                socialInstagram = "@armonia_respiro_monteverde",
+                socialLinkedin = "",
+                orariApertura = "Lun - Sab: 09:00 - 20:00 (Solo su appuntamento)",
+                statoPubblicazione = PublicationStatus.IN_ATTESA_APPROVAZIONE,
+                dataUltimoAggiornamento = "06/09/2026",
+                noteRevisioneAdmin = "In attesa di verifica titoli professionali da parte della segreteria"
+            ),
+            BusinessActivity(
+                id = "act-06",
+                memberId = "mem-06", // Francesca Neri - SOSPESA
+                nomeAttivita = "Bottega Creativa Ceramiche Trastevere",
+                categoria = ActivityCategory.CULTURA_FORMAZIONE,
+                descrizioneBreve = "Laboratori di tornio e modellazione dell'argilla, corsi di ceramica Raku per adulti e bambini.",
+                descrizioneCompleta = "Laboratorio artigianale nel cuore di Trastevere dedicato alla creazione di manufatti unici in ceramica smaltata e alla diffusione dell'arte fittile.",
+                serviziOfferti = listOf(
+                    "Corsi di tornio manuale e modellazione argilla",
+                    "Workshop esperienziali di ceramica Raku",
+                    "Creazione bomboniere solidali per eventi",
+                    "Laboratori creativi per bambini e famiglie",
+                    "Pezzi unici di design per arredo interni"
+                ),
+                localita = "Roma - Trastevere",
+                indirizzoPubblico = "Via della Lungaretta, 65 - Roma",
+                telefonoPubblico = "+39 06 5810234",
+                emailPubblica = "ceramiche.trastevere@prolocal-demo.it",
+                sitoWeb = "https://ceramicheditrastevere.demo-prolocal.it",
+                socialInstagram = "@ceramiche_trastevere",
+                socialLinkedin = "",
+                orariApertura = "Mar - Sab: 10:30 - 19:00",
+                statoPubblicazione = PublicationStatus.PUBBLICATA,
+                dataUltimoAggiornamento = "20/07/2026",
+                noteRevisioneAdmin = "Sospesa dalla vetrina: socio collegato in stato SOSPESO per quota associativa."
+            ),
+            BusinessActivity(
+                id = "act-07",
+                memberId = "mem-07",
+                nomeAttivita = "Verde & Dimora Manutenzioni Ecologiche",
+                categoria = ActivityCategory.SERVIZI_CASA,
+                descrizioneBreve = "Cura del verde, potature aeree certificate, impianti di micro-irrigazione e bioedilizia leggera.",
+                descrizioneCompleta = "Offriamo servizi di manutenzione sostenibile per parchi condominiali, terrazzi e giardini privati con attrezzature elettriche a zero emissioni dirette.",
+                serviziOfferti = listOf(
+                    "Manutenzione ordinaria e straordinaria giardini",
+                    "Impianti irrigazione a risparmio idrico",
+                    "Potatura siepi e alberature a basso fusto",
+                    "Piccoli risanamenti edili e tinteggiature minerali",
+                    "Consulenza per allestimento terrazzi verdi"
+                ),
+                localita = "Roma - Montesacro / Talenti",
+                indirizzoPubblico = "Via Nomentana, 310 - Roma",
+                telefonoPubblico = "+39 06 8200145",
+                emailPubblica = "verdedimora@prolocal-demo.it",
+                sitoWeb = "https://verdedimora.demo-prolocal.it",
+                socialInstagram = "@verdedimora_roma",
+                socialLinkedin = "linkedin.com/company/verdedimora-manutenzioni",
+                orariApertura = "Lun - Ven: 08:00 - 18:00 | Sab: 08:00 - 13:00",
+                statoPubblicazione = PublicationStatus.PUBBLICATA,
+                dataUltimoAggiornamento = "04/09/2026",
+                noteRevisioneAdmin = "Verificata conformità dotazioni eco-sostenibili"
+            )
+        )
+    )
+    override val activities: StateFlow<List<BusinessActivity>> = _activities.asStateFlow()
+
+    private val _currentSelectedMemberId = MutableStateFlow("mem-01")
+    override val currentSelectedMemberId: StateFlow<String> = _currentSelectedMemberId.asStateFlow()
+
+    override fun selectMember(memberId: String) {
+        _currentSelectedMemberId.value = memberId
+        val member = getMemberById(memberId)
+        addAuditEntry(
+            operatore = member?.nomeCognome ?: "Utente",
+            azione = "Accesso Area Socio",
+            modulo = "Area Socio",
+            dettagli = "Sessione attiva come ${member?.nomeCognome} (${member?.statoAssociativo?.label})",
+            livello = "INFO"
+        )
+    }
+
+    override fun getActivityById(id: String): BusinessActivity? {
+        return _activities.value.find { it.id == id }
+    }
+
+    override fun getMemberById(id: String): Member? {
+        return _members.value.find { it.id == id }
+    }
+
+    override fun updateActivity(activity: BusinessActivity) {
+        val currentList = _activities.value.toMutableList()
+        val index = currentList.indexOfFirst { it.id == activity.id }
+        val updatedActivity = activity.copy(
+            dataUltimoAggiornamento = SimpleDateFormat("dd/MM/yyyy", Locale.ITALY).format(Date())
+        )
+        if (index >= 0) {
+            currentList[index] = updatedActivity
+        } else {
+            currentList.add(updatedActivity)
+        }
+        _activities.value = currentList
+        addAuditEntry(
+            operatore = getMemberById(activity.memberId)?.nomeCognome ?: "Socio",
+            azione = "Aggiornamento Scheda Attività",
+            modulo = "Vetrina / Area Socio",
+            dettagli = "Modificata scheda '${activity.nomeAttivita}' (Stato: ${activity.statoPubblicazione.label})",
+            livello = "ATTIVITÀ"
+        )
+    }
+
+    override fun requestPublication(activityId: String) {
+        val currentList = _activities.value.toMutableList()
+        val index = currentList.indexOfFirst { it.id == activityId }
+        if (index >= 0) {
+            val act = currentList[index]
+            val member = getMemberById(act.memberId)
+
+            if (member == null || !member.statoAssociativo.canPublishActivity) {
+                addAuditEntry(
+                    operatore = member?.nomeCognome ?: "Socio",
+                    azione = "Richiesta Pubblicazione Respinta",
+                    modulo = "Vetrina",
+                    dettagli = "Impossibile pubblicare: il socio non risulta ATTIVO (${member?.statoAssociativo?.label})",
+                    livello = "SICUREZZA"
+                )
+                return
+            }
+
+            val updated = act.copy(
+                statoPubblicazione = PublicationStatus.IN_ATTESA_APPROVAZIONE,
+                dataUltimoAggiornamento = SimpleDateFormat("dd/MM/yyyy", Locale.ITALY).format(Date()),
+                noteRevisioneAdmin = "Richiesta formale di pubblicazione inviata il ${dateFormat.format(Date())}."
+            )
+            currentList[index] = updated
+            _activities.value = currentList
+            addAuditEntry(
+                operatore = member.nomeCognome,
+                azione = "Richiesta Pubblicazione Vetrina",
+                modulo = "Vetrina",
+                dettagli = "Attività '${act.nomeAttivita}' sottomessa alla verifica dell'amministrazione",
+                livello = "ATTIVITÀ"
+            )
+        }
+    }
+
+    override fun updatePublicationStatus(activityId: String, newStatus: PublicationStatus, adminNotes: String) {
+        val currentList = _activities.value.toMutableList()
+        val index = currentList.indexOfFirst { it.id == activityId }
+        if (index >= 0) {
+            val act = currentList[index]
+            val updated = act.copy(
+                statoPubblicazione = newStatus,
+                noteRevisioneAdmin = adminNotes.ifBlank { "Stato aggiornato a ${newStatus.label} da Amministrazione" },
+                dataUltimoAggiornamento = SimpleDateFormat("dd/MM/yyyy", Locale.ITALY).format(Date())
+            )
+            currentList[index] = updated
+            _activities.value = currentList
+            addAuditEntry(
+                operatore = "Amministrazione Pro-Local",
+                azione = "Modifica Stato Pubblicazione",
+                modulo = "Amministrazione Vetrina",
+                dettagli = "Attività '${act.nomeAttivita}' impostata a '${newStatus.label}'. Note: $adminNotes",
+                livello = "ATTIVITÀ"
+            )
+        }
+    }
+
+    override fun updateMemberStatus(memberId: String, newStatus: MembershipStatus) {
+        val currentMemberList = _members.value.toMutableList()
+        val memberIndex = currentMemberList.indexOfFirst { it.id == memberId }
+        if (memberIndex >= 0) {
+            val oldMember = currentMemberList[memberIndex]
+            val updatedMember = oldMember.copy(
+                statoAssociativo = newStatus,
+                quotaSocialeInRegola = (newStatus == MembershipStatus.ATTIVO)
+            )
+            currentMemberList[memberIndex] = updatedMember
+            _members.value = currentMemberList
+
+            addAuditEntry(
+                operatore = "Amministrazione Pro-Local",
+                azione = "Variazione Stato Associativo",
+                modulo = "Libro Soci",
+                dettagli = "Socio ${oldMember.nomeCognome} (${oldMember.codiceSocio}) modificato in ${newStatus.label}",
+                livello = "SICUREZZA"
+            )
+        }
     }
 }

@@ -23,3 +23,21 @@
 * **Data:** 2026-09-07
 * **Contesto:** Necessità di conservazione permanente del codice, tracciabilità e collaborazione tra sviluppatori e soci tecnici.
 * **Decisione:** Strutturazione del repository conforme agli standard Git, con documentazione in Markdown (`/docs`) consultabile sia su GitHub sia direttamente dall'applicazione.
+
+### ADR-005: Vincolo di Visibilità Vetrina Ancorato allo Status di Socio Attivo
+* **Data:** 2026-09-07
+* **Contesto:** La vetrina pubblica deve valorizzare le attività economiche e professionali dei membri dell'associazione, costituendo un beneficio riservato a chi partecipa attivamente alla vita associativa ed è in regola con la quota.
+* **Decisione:** Incapsulare nel modello di dominio (`BusinessActivity.isVisibileInVetrina(MembershipStatus)`) la regola di visibilità come singola sorgente di verità. Se lo stato associativo del socio collegato non è `ATTIVO`, l'attività è esclusa dalle query e dalle schermate pubbliche, a prescindere dal suo stato redazionale.
+* **Conseguenze:** Totale aderenza al mandato statutario. Nessun disallineamento possibile tra libro soci e vetrina pubblica.
+
+### ADR-006: Esclusione Funzionalità Commerciali E-commerce e Recensioni Libere
+* **Data:** 2026-09-07
+* **Contesto:** Pro-Local non è un marketplace o un intermediario d'affari a scopo di lucro, ma una piattaforma istituzionale di rete territoriale.
+* **Decisione:** Non implementare carrelli acquisti, gateway di pagamento transazionali o recensioni commerciali non verificate. La piattaforma offre contatto diretto (telefono, email, sede fisica, link web istituzionali).
+* **Conseguenze:** Piena conformità con la natura di associazione non riconosciuta / futuro ETS; nessuna responsabilità da intermediario commerciale.
+
+### ADR-007: Flusso di Approvazione Schede Attività a Due Fasi
+* **Data:** 2026-09-07
+* **Contesto:** Necessità di verificare la rispondenza delle schede pubblicate alle finalità associative e alla dignità dell'ente.
+* **Decisione:** Implementazione di un ciclo di vita a stati (`BOZZA`, `IN_ATTESA_APPROVAZIONE`, `PUBBLICATA`, `SOSPESA`, `RIFIUTATA`) con approvazione esplicita da parte della segreteria/amministrazione.
+* **Conseguenze:** Controllo editoriale garantito e responsabilizzazione del socio.

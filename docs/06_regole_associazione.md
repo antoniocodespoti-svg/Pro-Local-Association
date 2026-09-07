@@ -47,3 +47,33 @@
 3. `[DA DEFINIRE]` Durata temporale in anni del mandato del Consiglio Direttivo e rieleggibilità.
 4. `[DA DEFINIRE]` Quorum costitutivo formale per la validità delle adunanze consiliari.
 5. `[DA DEFINIRE]` Condizioni di incompatibilità tra cariche interne (es. cumulabilità tra Segretario e Tesoriere, oppure divieto).
+
+---
+
+### 6.4 Regole della Vetrina Digitale e Requisiti di Pubblicazione [DEFINITO]
+
+#### Regola Fondamentale della Vetrina
+* **Enunciato:** Un'attività commerciale, artigianale o professionale può essere pubblicata ed esposta nella vetrina pubblica SOLO se è collegata a una persona che risulta **SOCIO ATTIVO** dell'associazione Pro-Local.
+* **Implicazione Software:**
+  1. Il sistema verifica a runtime e a livello di query lo status associativo del socio titolare (`statoAssociativo == MembershipStatus.ATTIVO`).
+  2. In caso di transizione dello stato del socio a `SOSPESO`, `RECEDUTO` o `ESCLUSO`, la scheda dell'attività viene istantaneamente resa invisibile nei risultati pubblici e nella vista di dettaglio della vetrina.
+  3. L'amministrazione dell'associazione esercita vigilanza su ogni nuova scheda o modifica rilevante prima della messa online (`statoPubblicazione == PublicationStatus.PUBBLICATA`).
+
+#### Regola di Tutela Istituzionale e Divieto di Intermediazione
+* La piattaforma non percepisce provvigioni né percentuali sulle transazioni tra visitatori e attività dei soci.
+* L'associazione non è parte contrattuale dei contratti d'opera o di vendita conclusi tra i soci e i loro clienti o committenti.
+* La vetrina funge da strumento promozionale istituzionale per accrescere la visibilità delle eccellenze locali aggregate nella compagine sociale.
+
+---
+
+### 6.5 Aspetti Aperti della Vetrina non Definitivi [DA DEFINIRE]
+In conformità con il mandato del progetto, i seguenti aspetti **NON sono considerati regole definitive** e restano aperti a future determinazioni:
+1. `[DA DEFINIRE]` **Numero di attività per socio:** rapporto 1:1 o 1:N tra socio e attività pubblicabili.
+2. `[DA DEFINIRE]` **Obbligatorietà dei singoli campi della scheda:** determinazione tassativa dei campi obbligatori minimi per la richiesta di pubblicazione.
+3. `[DA DEFINIRE]` **Modalità definitive di approvazione:** procedura formale (es. delibera del Consiglio vs istruttoria delegata alla Segreteria).
+4. `[DA DEFINIRE]` **Tassonomia definitiva delle categorie:** approvazione formale dell'elenco delle categorie merceologiche e delle modalità di richiesta nuove categorie.
+5. `[DA DEFINIRE]` **Recensioni e reputazione:** escluse recensioni pubbliche e commerciali libere; da definire eventuale sistema di attestazioni interne.
+6. `[DA DEFINIRE]` **Geolocalizzazione e mappe:** selezione della tecnologia cartografica conforme al principio di minimizzazione dati (GDPR).
+7. `[DA DEFINIRE]` **Messaggistica interna:** modalità e limiti di eventuale contatto in-app.
+8. `[DA DEFINIRE]` **Pagamenti, quote e abbonamenti:** esclusa categoricamente ogni transazione commerciale; da definire l'eventuale rinnovo online della quota annuale d'iscrizione.
+9. `[DA DEFINIRE]` **Altre funzionalità commerciali:** vietata l'introduzione di strumenti e-commerce privi di previsione statutaria.

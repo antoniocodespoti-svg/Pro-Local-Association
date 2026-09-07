@@ -1,32 +1,33 @@
 # Pro-Local
 
-Piattaforma digitale modulare per la gestione dell'associazione.
+Piattaforma digitale per la gestione dell'associazione e vetrina pubblica delle attività dei soci.
 
-> **Stato Progetto:** Fase 1 - Struttura Iniziale & Governance Base  
+> **Stato Progetto:** Fase 2 - Vetrina Digitale & Area Soci Integrata (Versione 0.2.0-beta)  
 > **Natura Giuridica dell'Ente:** Associazione non riconosciuta (predisposta per futura iscrizione al RUNTS).  
-> **Requisiti:** Distinzione rigorosa tra regole consolidate `[DEFINITO]` e aspetti aperti `[DA DEFINIRE]`.
+> **Due Dimensioni:** 1. Gestione associativa interna; 2. Portale vetrina pubblica delle attività dei soci.
 
 ---
 
-## 🏛️ Obiettivo
-Pro-Local nasce per supportare digitalmente la vita democratica e amministrativa dell'associazione:
-- Gestione associati e libro soci
-- Organi statutari (Assemblea, Consiglio Direttivo)
-- Candidature, elezioni e votazioni
-- Deliberazioni e verbali
-- Documenti e comunicazioni istituzionali
-- Gestione granulare di ruoli e permessi
+## 🌟 Il Cuore della Web App: Vetrina Digitale dei Soci
+
+Pro-Local funziona come vetrina promozionale territoriale per i servizi, i prodotti e le attività professionali degli associati:
+- Ricerca libera per servizio, parola chiave e categorie merceologiche
+- Schede dettagliate con contatti diretti, elenco servizi, orari e link social
+- Badge istituzionale di garanzia "Attività Verificata - Socio Pro-Local Attivo"
+
+### 🛡️ Regola Fondamentale di Visibilità
+> **Un'attività può essere pubblicata nella vetrina SOLO se è collegata a una persona che risulta SOCIO ATTIVO dell'associazione.**
+> Se lo stato del socio diviene non attivo (sospeso, receduto o escluso), la scheda viene istantaneamente oscurata dal portale pubblico.
 
 ---
 
-## ⚖️ Regole Fondamentali Già Definite per il Consiglio
-1. **Quattro cariche interne elette direttamente dall'Assemblea**: Presidente, Vicepresidente, Segretario, Tesoriere.
-2. **Approvazione a maggioranza dei presenti**: le deliberazioni del Consiglio richiedono la maggioranza dei voti dei presenti.
-3. **Voto prevalente del Presidente in caso di parità**: in caso di parità, il voto del Presidente determina l'esito.
-4. **Subentro del primo dei non eletti**: in caso di cessazione, subentra il primo dei non eletti previa espressa approvazione dell'interessato.
-5. **Disciplina per la revoca del singolo consigliere**: prevista esplicita disciplina di revoca.
-
-*Nota di conformità:* Queste regole costituiscono requisiti del progetto software e non costituiscono consulenza legale. Eventuali incompatibilità con la normativa italiana dovranno essere verificate prima dell'implementazione definitiva.
+## 🏛️ Gestione Digitale dell'Associazione
+Pro-Local supporta la vita democratica e amministrativa dell'ente:
+- Gestione associati e libro soci in tempo reale
+- Organi statutari (Assemblea, Consiglio Direttivo con 4 cariche elette direttamente)
+- Regole del Consiglio consolidate (maggioranza presenti, casting vote Presidente, subentro primo non eletti, disciplina revoca)
+- Area Riservata Socio per compilazione e sottomissione scheda attività
+- Area Amministrazione per revisione pubblicazioni e vigilanza statutaria
 
 ---
 
