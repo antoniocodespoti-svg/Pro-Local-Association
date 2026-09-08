@@ -66,7 +66,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.core.model.ActivityCategory
 import com.example.core.model.BusinessActivity
-import com.example.core.model.Member
 import com.example.ui.theme.CivicBlue600
 import com.example.ui.theme.CivicGold
 import com.example.ui.theme.CivicGoldBorder
@@ -85,8 +84,6 @@ import com.example.ui.theme.Slate700
 import com.example.ui.theme.Slate800
 import com.example.ui.theme.Slate900
 import com.example.ui.theme.StateDefinedGreen
-import com.example.ui.theme.StateDefinedGreenBg
-import com.example.ui.theme.StateDefinedGreenText
 import com.example.ui.theme.StateToDefineAmber
 import com.example.ui.theme.StateToDefineAmberBg
 import com.example.ui.theme.StateToDefineAmberText
@@ -95,7 +92,6 @@ import com.example.ui.theme.StateToDefineAmberText
 @Composable
 fun ActivityDetailSheet(
     activity: BusinessActivity,
-    member: Member?,
     onClose: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -209,47 +205,6 @@ fun ActivityDetailSheet(
                         color = Slate700,
                         lineHeight = 20.sp
                     )
-
-                    // Box Certificazione Socio Attivo Pro-Local
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = StateDefinedGreenBg.copy(alpha = 0.6f),
-                        border = BorderStroke(1.dp, StateDefinedGreen.copy(alpha = 0.3f)),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .background(StateDefinedGreen, CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.VerifiedUser,
-                                    contentDescription = "Certificato",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column {
-                                Text(
-                                    text = "Attività Verificata nella Rete Pro-Local",
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = StateDefinedGreenText
-                                )
-                                Text(
-                                    text = "Pubblicata da socio attivo (${member?.codiceSocio ?: "SOC-PROLOCAL"}) regolarmente iscritto all'associazione.",
-                                    fontSize = 11.sp,
-                                    color = Slate600
-                                )
-                            }
-                        }
-                    }
                 }
             }
 
@@ -415,6 +370,41 @@ fun ActivityDetailSheet(
                 }
             }
 
+            // Nota di trasparenza e autonomia (neutrale, senza badge o garanzie)
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Slate100),
+                border = BorderStroke(1.dp, Slate200),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(14.dp),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = null,
+                        tint = Slate500,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Text(
+                            text = "Nota di trasparenza e autonomia",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Slate700
+                        )
+                        Text(
+                            text = "L'attività e i servizi sono gestiti in piena autonomia dal titolare. L'associazione Pro-Local gestisce la piattaforma secondo le regole associative e non opera come intermediario, garante o certificatore professionale né assume responsabilità per le prestazioni offerte.",
+                            fontSize = 11.sp,
+                            color = Slate600,
+                            lineHeight = 16.sp
+                        )
+                    }
+                }
+            }
+
             // Elementi [DA DEFINIRE] esplicitamente marcati
             Card(
                 colors = CardDefaults.cardColors(containerColor = Slate50),
@@ -440,7 +430,7 @@ fun ActivityDetailSheet(
                     }
 
                     Text(
-                        text = "• Mappa interattiva e calcolo percorsi (in attesa di selezione provider cartografico open/GDPR-compliant)\n• Modulo recensioni istituzionali verificate tra associati (nessuna recensione commerciale libera per rispetto statutario)\n• Sistema di prenotazione diretta e transazioni (non previsto nello statuto attuale dell'associazione)",
+                        text = "• Mappa interattiva e calcolo percorsi (in attesa di selezione provider cartografico open/GDPR-compliant)\n• Eventuale modulo di riscontro interno tra associati (esclusa qualsiasi recensione commerciale aperta)\n• Sistema di prenotazione diretta e transazioni (escluso: l'associazione non svolge attività di intermediazione commerciale)",
                         fontSize = 11.sp,
                         color = Slate600,
                         lineHeight = 16.sp

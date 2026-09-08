@@ -41,3 +41,18 @@
 * **Contesto:** Necessità di verificare la rispondenza delle schede pubblicate alle finalità associative e alla dignità dell'ente.
 * **Decisione:** Implementazione di un ciclo di vita a stati (`BOZZA`, `IN_ATTESA_APPROVAZIONE`, `PUBBLICATA`, `SOSPESA`, `RIFIUTATA`) con approvazione esplicita da parte della segreteria/amministrazione.
 * **Conseguenze:** Controllo editoriale garantito e responsabilizzazione del socio.
+
+### ADR-008: Principio di Democraticità Associativa e Subordinazione del Software
+* **Data:** 2026-09-08
+* **Contesto:** Esigenza fondamentale di salvaguardare la natura democratica dell'ente e impedire qualsiasi deriva verticistica o tecnocratica.
+* **Decisione:** Il software è formalmente e strutturalmente subordinato agli organi democratici statutari. L'Assemblea dei Soci è sovrana; il Consiglio Direttivo è organo collegiale esecutivo; l'amministratore tecnico del software è un ruolo ausiliario senza poteri deliberativi e non può scavalcare né alterare le deliberazioni collegiali.
+* **Conseguenze:** Garanzia di democraticità interna nel pieno rispetto dei principi generali del Terzo Settore e del Codice Civile.
+
+### ADR-009: Separazione Assoluta tra Associazione e Attività Professionali dei Soci
+* **Data:** 2026-09-08
+* **Contesto:** Rischio di ingenerare nei cittadini/visitatori la falsa percezione che l'associazione certifichi la perizia professionale, garantisca l'esito dei servizi o assuma responsabilità contrattuali/extracontrattuali.
+* **Decisione:** 
+  1. Separazione rigorosa tra le due dimensioni: l'associazione gestisce la vita sociale democratica; la piattaforma espone unicamente uno spazio informativo neutrale; il professionista/impresa opera in piena e autonoma responsabilità; il visitatore sceglie autonomamente se contattare l'attività.
+  2. Divieto assoluto di esporre nella vetrina o nelle schede badge, sigilli, bollini, "verificato", "certificato" o attestazioni di garanzia commerciale.
+  3. Inserimento in ogni scheda di una chiara nota di trasparenza e autonomia.
+* **Conseguenze:** Esclusione di qualsiasi responsabilità di garanzia o intermediazione in capo all'associazione e trasparenza totale verso la cittadinanza.

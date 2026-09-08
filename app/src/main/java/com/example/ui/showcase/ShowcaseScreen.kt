@@ -23,14 +23,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Storefront
-import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -113,7 +112,6 @@ fun ShowcaseScreen(
         } else {
             ActivityDetailSheet(
                 activity = detailActivity,
-                member = member,
                 onClose = { selectedActivityForDetail = null }
             )
             return
@@ -193,7 +191,7 @@ fun ShowcaseScreen(
                         }
 
                         Text(
-                            text = "${allEligibleInShowcase.size} Attività Certificate",
+                            text = "${allEligibleInShowcase.size} attività disponibili",
                             fontSize = 12.sp,
                             color = Slate300,
                             fontWeight = FontWeight.Medium
@@ -201,7 +199,7 @@ fun ShowcaseScreen(
                     }
 
                     Text(
-                        text = "Trova servizi e attività nella rete Pro-Local",
+                        text = "Vetrina delle attività e dei servizi",
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White,
@@ -209,7 +207,7 @@ fun ShowcaseScreen(
                     )
 
                     Text(
-                        text = "La piattaforma connette la comunità con artigiani, professionisti e realtà del territorio regolarmente iscritti come soci attivi.",
+                        text = "Consultazione pubblica delle attività e dei servizi offerti dai soci secondo le regole associative. I rapporti tra visitatori e attività restano autonomi.",
                         fontSize = 13.sp,
                         color = Slate200,
                         lineHeight = 18.sp
@@ -217,20 +215,20 @@ fun ShowcaseScreen(
 
                     HorizontalDivider(color = Slate800, modifier = Modifier.padding(vertical = 4.dp))
 
-                    // Nota Regola Fondamentale
+                    // Nota di trasparenza e autonomia (neutrale, senza attestazioni di garanzia)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = Icons.Default.Shield,
+                            imageVector = Icons.Default.Info,
                             contentDescription = null,
-                            tint = StateDefinedGreen,
-                            modifier = Modifier.size(16.dp)
+                            tint = Slate300,
+                            modifier = Modifier.size(15.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Regola Pro-Local: Solo i soci con iscrizione ATTIVA possono pubblicare in vetrina.",
+                            text = "Trasparenza: L'associazione non certifica né garantisce le prestazioni professionali.",
                             fontSize = 11.sp,
                             color = Slate300,
-                            fontWeight = FontWeight.Medium
+                            fontWeight = FontWeight.Normal
                         )
                     }
                 }
@@ -432,10 +430,8 @@ fun ShowcaseScreen(
             }
         } else {
             items(filteredActivities) { activity ->
-                val member = members.find { it.id == activity.memberId }
                 ShowcaseActivityCard(
                     activity = activity,
-                    member = member,
                     onOpenDetail = { selectedActivityForDetail = activity }
                 )
             }
@@ -525,7 +521,6 @@ fun ShowcaseScreen(
 @Composable
 private fun ShowcaseActivityCard(
     activity: BusinessActivity,
-    member: Member?,
     onOpenDetail: () -> Unit
 ) {
     Card(
@@ -642,41 +637,31 @@ private fun ShowcaseActivityCard(
 
             HorizontalDivider(color = Slate100)
 
-            // Footer con badge socio attivo e azione scheda
+            // Footer neutrale con indicazione servizi e azione scheda
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.VerifiedUser,
-                        contentDescription = "Socio Verificato",
-                        tint = StateDefinedGreen,
-                        modifier = Modifier.size(15.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "Socio Attivo: ${member?.codiceSocio ?: "SOC-PROLOCAL"}",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = StateDefinedGreenText
-                    )
-                }
+                Text(
+                    text = "${activity.serviziOfferti.size} servizi offerti",
+                    fontSize = 11.sp,
+                    color = Slate500
+                )
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.clickable { onOpenDetail() }
                 ) {
                     Text(
-                        text = "Vedi scheda",
+                        text = "Consulta scheda",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         color = CivicNavy700
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Icon(
-                        imageVector = Icons.Default.ArrowForward,
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                         contentDescription = null,
                         tint = CivicNavy700,
                         modifier = Modifier.size(14.dp)

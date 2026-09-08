@@ -1,33 +1,44 @@
 # Pro-Local
 
-Piattaforma digitale per la gestione dell'associazione e vetrina pubblica delle attività dei soci.
+Piattaforma digitale per la gestione democratica dell'associazione e vetrina pubblica delle attività dei soci.
 
-> **Stato Progetto:** Fase 2 - Vetrina Digitale & Area Soci Integrata (Versione 0.2.0-beta)  
-> **Natura Giuridica dell'Ente:** Associazione non riconosciuta (predisposta per futura iscrizione al RUNTS).  
-> **Due Dimensioni:** 1. Gestione associativa interna; 2. Portale vetrina pubblica delle attività dei soci.
-
----
-
-## 🌟 Il Cuore della Web App: Vetrina Digitale dei Soci
-
-Pro-Local funziona come vetrina promozionale territoriale per i servizi, i prodotti e le attività professionali degli associati:
-- Ricerca libera per servizio, parola chiave e categorie merceologiche
-- Schede dettagliate con contatti diretti, elenco servizi, orari e link social
-- Badge istituzionale di garanzia "Attività Verificata - Socio Pro-Local Attivo"
-
-### 🛡️ Regola Fondamentale di Visibilità
-> **Un'attività può essere pubblicata nella vetrina SOLO se è collegata a una persona che risulta SOCIO ATTIVO dell'associazione.**
-> Se lo stato del socio diviene non attivo (sospeso, receduto o escluso), la scheda viene istantaneamente oscurata dal portale pubblico.
+> **Stato Progetto:** Fase 2 Consolidata — Separazione Assoluta Associazione / Attività (Versione 0.2.2-beta)  
+> **Natura Giuridica dell'Ente:** Associazione non riconosciuta (predisposta per eventuale futura iscrizione al RUNTS).  
+> **Due Dimensioni Distinte:** 1. Gestione della vita associativa democratica interna; 2. Portale vetrina neutrale per la visibilità delle attività dei soci.
 
 ---
 
-## 🏛️ Gestione Digitale dell'Associazione
-Pro-Local supporta la vita democratica e amministrativa dell'ente:
-- Gestione associati e libro soci in tempo reale
-- Organi statutari (Assemblea, Consiglio Direttivo con 4 cariche elette direttamente)
-- Regole del Consiglio consolidate (maggioranza presenti, casting vote Presidente, subentro primo non eletti, disciplina revoca)
-- Area Riservata Socio per compilazione e sottomissione scheda attività
-- Area Amministrazione per revisione pubblicazioni e vigilanza statutaria
+## 🏛️ Principio Assoluto: Democraticità dell'Associazione
+
+L'associazione deve essere e rimanere rigorosamente democratica:
+- Il software è uno strumento al servizio dell'associazione e delle sue regole statutarie, non un'autorità sopra gli organi associativi.
+- L'**Assemblea dei Soci** è l'organo sovrano che approva gli indirizzi ed elegge direttamente le cariche sociali.
+- Il **Consiglio Direttivo** è l'organo collegiale esecutivo (con regole chiare di funzionamento: maggioranza dei presenti, voto dirimente del Presidente in parità, subentro graduato del primo dei non eletti, disciplina per la revoca).
+- Nessun amministratore tecnico può sostituire o scavalcare una decisione dell'Assemblea o del Consiglio Direttivo.
+
+---
+
+## 🔍 Principio di Separazione tra Associazione e Attività Professionali
+
+La piattaforma mantiene una netta e rigorosa separazione funzionale e giuridica:
+1. L'associazione gestisce la propria vita associativa interna.
+2. La piattaforma gestisce la pubblicazione delle schede secondo le regole stabilite.
+3. Il professionista/attività rimane autonomo nella gestione della propria professione o impresa.
+4. Il visitatore sceglie in piena autonomia se contattare l'attività.
+5. **L'associazione NON è garante né intermediario commerciale:** non verifica la perizia professionale, non garantisce la qualità dei servizi, non certifica le attività né assume responsabilità contrattuali.
+6. **Neutralità assoluta dell'interfaccia pubblica:** nella vetrina non vengono utilizzati badge, sigilli, bollini, icone di verifica, attestazioni di garanzia o diciture equivalenti.
+
+### 🛡️ Regola Interna di Pubblicazione
+> **Un'attività è potenzialmente pubblicabile nella vetrina SOLO se collegata a un SOCIO ATTIVO dell'associazione.**  
+> Se il socio diviene non attivo (sospeso, moroso, receduto o escluso), l'attività viene automaticamente e istantaneamente oscurata dalla vetrina pubblica e dai risultati di ricerca. Tale condizione costituisce un requisito interno di ammissibilità statutaria, NON una certificazione pubblica.
+
+---
+
+## 🌟 Vetrina delle Attività dei Soci
+- Consultazione pubblica neutrale di artigiani, professionisti e realtà del territorio.
+- Ricerca libera per servizio, parola chiave e categorie merceologiche.
+- Schede descrittive con contatti diretti, elenco servizi, orari e link social forniti dal titolare.
+- Scheda trasparente con nota di autonomia e assenza di intermediazione commerciale.
 
 ---
 

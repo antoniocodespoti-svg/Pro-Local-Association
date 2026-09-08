@@ -5,6 +5,29 @@ Tutte le modifiche al codice e alla documentazione di Pro-Local sono annotate in
 
 ---
 
+### Versione 0.2.2-beta (Consolidamento Fase 2: Democraticità e Separazione Assoluta Attività)
+* **Data di Rilascio:** 2026-09-08
+* **Tipologia:** Consolidamento Principi di Governance, Neutralità Vetrina & Disaccoppiamento di Responsabilità
+
+#### Modifiche e Principi Introdotti:
+1. **Riaffermazione del Principio di Democraticità Associativa:**
+   - L'associazione è e rimane rigorosamente democratica.
+   - Il software è formalmente e tecnicamente uno strumento ausiliario e subordinato alle regole associative, non un'autorità sopra gli organi statutari.
+   - L'Assemblea dei Soci è sovrana; il Consiglio Direttivo è organo collegiale esecutivo; nessun amministratore tecnico del software può scavalcare le delibere degli organi associativi.
+2. **Separazione Assoluta tra Associazione e Attività Professionali:**
+   - Separazione netta tra la vita democratica interna dell'associazione e l'esercizio autonomo dell'attività economica o professionale del socio.
+   - La piattaforma fornisce uno spazio informativo neutrale; il professionista/attività rimane autonomo nella gestione della propria prestazione o impresa; il visitatore sceglie in piena autonomia se contattare l'attività.
+   - L'associazione **NON è garante né intermediario commerciale o contrattuale**: non verifica la perizia professionale, non garantisce la qualità dei servizi, non certifica le attività né assume responsabilità per le prestazioni.
+3. **Neutralità Assoluta dell'Interfaccia Pubblica (Vetrina):**
+   - Rimozione completa di badge, sigilli, bollini ("Attività Verificata", "Socio Certificato", icone di scudo/garanzia) e di qualsiasi attestazione commerciale dalla vetrina e dalle schede.
+   - Inserimento in ogni scheda di una chiara nota informativa di trasparenza e autonomia.
+   - La regola del socio attivo rimane pienamente operativa quale condizione interna di ammissibilità associativa, senza trasformarsi in una certificazione per il pubblico.
+4. **Allineamento Documentale e Coerenza Codice:**
+   - Aggiornati tutti i documenti di progetto (`01_descrizione_generale.md`, `02_specifica_funzionale.md`, `03_architettura_tecnica.md`, `04_infrastruttura_rete.md`, `05_decisioni_progettuali.md` con ADR-008 e ADR-009, `06_regole_associazione.md`, `07_registro_modifiche.md`).
+   - Invarianza delle regole del Consiglio Direttivo e rigoroso mantenimento della distinzione tra `[DEFINITO]` e `[DA DEFINIRE]`.
+
+---
+
 ### Versione 0.2.1-beta (Consolidamento & Verifica Rigorosa Fase 2)
 * **Data di Verifica:** 2026-09-07
 * **Tipologia:** Verifica di Conformità, Test di Validazione & Consolidamento Regole

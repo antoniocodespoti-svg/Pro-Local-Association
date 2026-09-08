@@ -154,7 +154,6 @@ fun MemberAreaScreen(
                 sitoWeb = formSitoWeb,
                 orariApertura = formOrari
             ),
-            member = currentMember,
             onClose = { showPreviewSheet = false }
         )
         return

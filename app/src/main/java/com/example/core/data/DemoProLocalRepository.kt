@@ -244,13 +244,13 @@ class DemoProLocalRepository : ProLocalRepository {
                     "Ricerca per servizio, categoria e località",
                     "Regola fondamentale: pubblicazione riservata esclusivamente ai soci attivi",
                     "Scheda pubblica dettagliata con contatti e servizi",
-                    "Badge certificazione socio Pro-Local attivo"
+                    "Principio di separazione: consultazione neutrale senza attestazioni o certificazioni commerciali"
                 ),
                 elementiDaDefinire = listOf(
                     "Geolocalizzazione interattiva su mappa [DA DEFINIRE]",
                     "Attività multiple per singolo socio (1 -> N esteso) [DA DEFINIRE]"
                 ),
-                descrizioneFunzionale = "Cuore pubblico della piattaforma: permette ai cittadini di trovare attività professionali e artigianali certificate dalla rete associativa."
+                descrizioneFunzionale = "Portale pubblico per la consultazione delle attività e dei servizi offerti dai soci secondo le regole associative, nella reciproca autonomia professionale."
             ),
             ProjectModule(
                 key = ModuleKey.AREA_SOCIO,
@@ -442,7 +442,7 @@ class DemoProLocalRepository : ProLocalRepository {
                     DocSection(
                         "1.3 Principi Guida",
                         DefinitionState.DEFINITO,
-                        "Modularità rigorosa, nessun requisito inventato, distinzione visibile [DEFINITO] vs [DA DEFINIRE], privacy by design e predisposizione GitHub."
+                        "Modularità rigorosa, nessun requisito inventato, distinzione visibile [DEFINITO] vs [DA DEFINIRE], democraticità associativa, separazione assoluta tra associazione e attività professionali dei soci (nessun badge o garanzia commerciale)."
                     )
                 )
             ),
@@ -457,7 +457,12 @@ class DemoProLocalRepository : ProLocalRepository {
                         "Definite le 4 cariche interne elette dall'Assemblea, approvazione a maggioranza dei presenti, voto prevalente del Presidente in parità, subentro primo non eletti previa approvazione, disciplina revoca."
                     ),
                     DocSection(
-                        "2.2 Moduli da Definire Statutariamente",
+                        "2.2 Vetrina Pubblica e Separazione Attività",
+                        DefinitionState.DEFINITO,
+                        "Vetrina neutrale: pubblicazione riservata ai soci attivi, ma divieto assoluto di badge, sigilli, bollini o attestazioni di garanzia commerciale. Piena autonomia professionale del socio."
+                    ),
+                    DocSection(
+                        "2.3 Moduli da Definire Statutariamente",
                         DefinitionState.DA_DEFINIRE,
                         "Associati e tesseramento [DA DEFINIRE], Convocazione Assemblea [DA DEFINIRE], Sistema di voto elettronico [DA DEFINIRE], Archiviazione verbali [DA DEFINIRE]."
                     )
@@ -476,7 +481,7 @@ class DemoProLocalRepository : ProLocalRepository {
                     DocSection(
                         "3.2 Sicurezza e Privacy",
                         DefinitionState.DEFINITO,
-                        "Solo dati dimostrativi in Fase 1. Modello immutabile di Audit Log e matrice RBAC predisposta per il futuro."
+                        "Solo dati dimostrativi in Fase 1. Modello immutabile di Audit Log e matrice RBAC con distinzione netta tra organi associativi e ruoli tecnici."
                     )
                 )
             ),
@@ -521,6 +526,16 @@ class DemoProLocalRepository : ProLocalRepository {
                         "ADR-004: Versionamento GitHub",
                         DefinitionState.DEFINITO,
                         "Repository strutturato con documentazione markdown integrata e README."
+                    ),
+                    DocSection(
+                        "ADR-008: Democraticità Associativa",
+                        DefinitionState.DEFINITO,
+                        "Il software è subordinato alle regole associative e agli organi democratici (Assemblea sovrana e Consiglio Direttivo collegiale)."
+                    ),
+                    DocSection(
+                        "ADR-009: Separazione tra Associazione e Attività",
+                        DefinitionState.DEFINITO,
+                        "Separazione assoluta: l'associazione non garantisce né certifica le attività dei soci. Divieto di badge o sigilli nella vetrina."
                     )
                 )
             ),
@@ -535,7 +550,12 @@ class DemoProLocalRepository : ProLocalRepository {
                         "1. Elezione diretta 4 cariche; 2. Maggioranza presenti; 3. Voto prevalente Presidente in parità; 4. Subentro primo non eletti con consenso; 5. Disciplina revoca singolo consigliere."
                     ),
                     DocSection(
-                        "6.2 Aspetti Statutari da Definire",
+                        "6.2 Principio di Democraticità e Separazione Attività",
+                        DefinitionState.DEFINITO,
+                        "L'associazione gestisce la vita associativa; la piattaforma gestisce la pubblicazione; l'attività professionale rimane autonoma; l'associazione non garantisce prestazioni né rilascia badge o sigilli."
+                    ),
+                    DocSection(
+                        "6.3 Aspetti Statutari da Definire",
                         DefinitionState.DA_DEFINIRE,
                         "Numero consiglieri totale [DA DEFINIRE], durata del mandato [DA DEFINIRE], quorum costitutivo formale [DA DEFINIRE]."
                     )
@@ -550,6 +570,11 @@ class DemoProLocalRepository : ProLocalRepository {
                         "Versione 0.1.0-alpha (Fase 1)",
                         DefinitionState.DEFINITO,
                         "Fondazione del progetto: configurazione architettura, 7 sezioni documentali, dashboard, modulo Consiglio con regole attive, layout responsive."
+                    ),
+                    DocSection(
+                        "Versione 0.2.2-beta (Consolidamento Fase 2)",
+                        DefinitionState.DEFINITO,
+                        "Separazione assoluta tra associazione e attività professionali, neutralità della vetrina pubblica senza badge o sigilli di garanzia, rispetto rigoroso della democraticità associativa."
                     )
                 )
             )
@@ -769,7 +794,7 @@ class DemoProLocalRepository : ProLocalRepository {
                 orariApertura = "Lun - Ven: 09:00 - 13:00 / 15:30 - 19:00",
                 statoPubblicazione = PublicationStatus.PUBBLICATA,
                 dataUltimoAggiornamento = "01/09/2026",
-                noteRevisioneAdmin = "Scheda verificata e conforme al regolamento Pro-Local"
+                noteRevisioneAdmin = "Scheda conforme ai criteri di pubblicazione della piattaforma"
             ),
             BusinessActivity(
                 id = "act-02",
@@ -795,7 +820,7 @@ class DemoProLocalRepository : ProLocalRepository {
                 orariApertura = "Lun - Gio: 09:00 - 18:00 | Ven: 09:00 - 14:00",
                 statoPubblicazione = PublicationStatus.PUBBLICATA,
                 dataUltimoAggiornamento = "03/09/2026",
-                noteRevisioneAdmin = "Confermata iscrizione all'albo e status socio attivo"
+                noteRevisioneAdmin = "Scheda conforme ai criteri di pubblicazione della piattaforma"
             ),
             BusinessActivity(
                 id = "act-03",
@@ -821,7 +846,7 @@ class DemoProLocalRepository : ProLocalRepository {
                 orariApertura = "Mar - Dom: 10:00 - 19:30",
                 statoPubblicazione = PublicationStatus.PUBBLICATA,
                 dataUltimoAggiornamento = "28/08/2026",
-                noteRevisioneAdmin = "Approvata come presidio di eccellenza territoriale"
+                noteRevisioneAdmin = "Scheda conforme ai criteri di pubblicazione della piattaforma"
             ),
             BusinessActivity(
                 id = "act-04",
@@ -847,7 +872,7 @@ class DemoProLocalRepository : ProLocalRepository {
                 orariApertura = "Lun - Ven: 09:30 - 18:30",
                 statoPubblicazione = PublicationStatus.PUBBLICATA,
                 dataUltimoAggiornamento = "02/09/2026",
-                noteRevisioneAdmin = "Conforme agli standard di sicurezza informatica"
+                noteRevisioneAdmin = "Scheda conforme ai criteri di pubblicazione della piattaforma"
             ),
             BusinessActivity(
                 id = "act-05",
@@ -873,7 +898,7 @@ class DemoProLocalRepository : ProLocalRepository {
                 orariApertura = "Lun - Sab: 09:00 - 20:00 (Solo su appuntamento)",
                 statoPubblicazione = PublicationStatus.IN_ATTESA_APPROVAZIONE,
                 dataUltimoAggiornamento = "06/09/2026",
-                noteRevisioneAdmin = "In attesa di verifica titoli professionali da parte della segreteria"
+                noteRevisioneAdmin = "In attesa di verifica conformità dati da parte dell'amministrazione"
             ),
             BusinessActivity(
                 id = "act-06",
@@ -899,7 +924,7 @@ class DemoProLocalRepository : ProLocalRepository {
                 orariApertura = "Mar - Sab: 10:30 - 19:00",
                 statoPubblicazione = PublicationStatus.PUBBLICATA,
                 dataUltimoAggiornamento = "20/07/2026",
-                noteRevisioneAdmin = "Sospesa dalla vetrina: socio collegato in stato SOSPESO per quota associativa."
+                noteRevisioneAdmin = "Non visibile nella vetrina pubblica: socio collegato non attivo (quota non in regola)."
             ),
             BusinessActivity(
                 id = "act-07",
@@ -925,7 +950,7 @@ class DemoProLocalRepository : ProLocalRepository {
                 orariApertura = "Lun - Ven: 08:00 - 18:00 | Sab: 08:00 - 13:00",
                 statoPubblicazione = PublicationStatus.PUBBLICATA,
                 dataUltimoAggiornamento = "04/09/2026",
-                noteRevisioneAdmin = "Verificata conformità dotazioni eco-sostenibili"
+                noteRevisioneAdmin = "Scheda conforme ai criteri di pubblicazione della piattaforma"
             )
         )
     )

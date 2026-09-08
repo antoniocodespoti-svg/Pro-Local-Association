@@ -3,6 +3,8 @@ package com.example.ui.admin
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -129,10 +131,8 @@ fun ShowcaseAdminScreen(
     val coroutineScope = rememberCoroutineScope()
 
     if (previewActivity != null) {
-        val member = members.find { it.id == previewActivity!!.memberId }
         ActivityDetailSheet(
             activity = previewActivity!!,
-            member = member,
             onClose = { previewActivity = null }
         )
         return
@@ -229,7 +229,7 @@ fun ShowcaseAdminScreen(
                         coroutineScope.launch { snackbarHostState.showSnackbar("Attività approvata e pubblicata!") }
                     },
                     onSuspend = { actId ->
-                        repository.updatePublicationStatus(actId, PublicationStatus.SOSPESA, "Sospesa dall'amministrazione per verifica")
+                        repository.updatePublicationStatus(actId, PublicationStatus.SOSPESA, "Sospesa dall'amministrazione per conformità ai criteri di pubblicazione")
                         coroutineScope.launch { snackbarHostState.showSnackbar("Attività sospesa!") }
                     },
                     onSetDraft = { actId ->
@@ -598,9 +598,75 @@ private fun AdminRolesTab() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
+        // Principio 1: Democraticità Associativa
+        Card(
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            border = BorderStroke(1.dp, Slate200),
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = null,
+                        tint = CivicNavy700,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Principio di Democraticità Associativa",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = CivicNavy900
+                    )
+                }
+                Text(
+                    text = "L'associazione è e rimane rigorosamente democratica. Il software è uno strumento subordinato alle regole associative e non un'autorità sopra gli organi dell'associazione. Nessun amministratore tecnico può sostituire o scavalcare una decisione dell'Assemblea o del Consiglio Direttivo.",
+                    fontSize = 12.sp,
+                    color = Slate700,
+                    lineHeight = 17.sp
+                )
+            }
+        }
+
+        // Principio 2: Separazione Assoluta Associazione / Attività
+        Card(
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            border = BorderStroke(1.dp, Slate200),
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = null,
+                        tint = CivicGoldDark,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Separazione tra Associazione e Attività",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Slate900
+                    )
+                }
+                Text(
+                    text = "1. L'associazione gestisce la propria vita associativa democratica;\n2. La piattaforma gestisce la pubblicazione delle attività secondo regole stabilite;\n3. Il professionista/attività rimane del tutto autonomo;\n4. Il visitatore sceglie in autonomia se contattare l'attività;\n5. L'associazione NON garantisce professionalmente l'attività né fa da intermediario contrattuale;\n6. Vietati badge, sigilli, bollini o attestazioni di garanzia nella vetrina.",
+                    fontSize = 12.sp,
+                    color = Slate700,
+                    lineHeight = 17.sp
+                )
+            }
+        }
+
+        // Matrice Ruoli
         Card(
             colors = CardDefaults.cardColors(containerColor = Color.White),
             border = BorderStroke(1.dp, Slate200),
@@ -609,45 +675,51 @@ private fun AdminRolesTab() {
         ) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
-                    text = "Matrice Funzionale dei Ruoli e Permessi",
+                    text = "Matrice Funzionale dei Ruoli e Organi",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = Slate900
                 )
                 Text(
-                    text = "Predisposizione tecnica dell'architettura RBAC (Role-Based Access Control) per la futura iscrizione al RUNTS e gestione multi-operatore:",
+                    text = "Distinzione netta tra organi associativi sovrani/collegiali e ruoli tecnici di supporto:",
                     fontSize = 12.sp,
                     color = Slate600
                 )
 
                 RolePermissionItem(
-                    ruolo = "Visitatore Pubblico",
-                    permessi = "Ricerca in vetrina, visualizzazione schede pubbliche, consultazione recapiti e informazioni legali associazione.",
+                    ruolo = "Assemblea dei Soci (Organo Sovrano)",
+                    permessi = "Organo democratico sovrano. Elegge le cariche sociali, approva i bilanci e le modifiche statutarie, delibera sugli indirizzi generali.",
+                    stato = "DEFINITO"
+                )
+
+                RolePermissionItem(
+                    ruolo = "Consiglio Direttivo (Organo Esecutivo)",
+                    permessi = "Organo collegiale esecutivo. Delibera su ammissione nuovi soci, revoca consiglieri, approva regolamenti interni nel rispetto dell'Assemblea.",
+                    stato = "DEFINITO"
+                )
+
+                RolePermissionItem(
+                    ruolo = "Cariche Sociali (Pres., Vicepres., Segr., Tes.)",
+                    permessi = "Esercitano le funzioni attribuite dallo statuto (rappresentanza legale, tenuta verbali, cassa e bilancio preventivo).",
                     stato = "DEFINITO"
                 )
 
                 RolePermissionItem(
                     ruolo = "Socio Ordinario Pro-Local",
-                    permessi = "Accesso all'Area Riservata Socio, compilazione e modifica scheda della propria attività, richiesta formale di pubblicazione.",
+                    permessi = "Partecipa all'Assemblea con diritto di voto, accede all'Area Riservata Socio, gestisce la scheda della propria attività in piena autonomia.",
                     stato = "DEFINITO"
                 )
 
                 RolePermissionItem(
-                    ruolo = "Segreteria / Amministrazione",
-                    permessi = "Verifica stato associativo, approvazione e sospensione schede attività, registrazione nel registro di audit.",
+                    ruolo = "Amministratore Tecnico del Software",
+                    permessi = "Ruolo tecnico ausiliario. NON è un organo associativo né ha poteri deliberativi. Gestisce solo la conformità tecnica e di pubblicazione secondo i criteri statutari.",
                     stato = "DEFINITO"
                 )
 
                 RolePermissionItem(
-                    ruolo = "Consiglio Direttivo",
-                    permessi = "Deliberazione su ammissione nuovi soci, revoca consiglieri, approvazione regolamenti interni.",
+                    ruolo = "Visitatore Pubblico",
+                    permessi = "Consultazione neutrale della vetrina pubblica e dei recapiti delle attività, senza attestazioni di garanzia da parte dell'associazione.",
                     stato = "DEFINITO"
-                )
-
-                RolePermissionItem(
-                    ruolo = "Amministratore di Sistema (Superadmin)",
-                    permessi = "Gestione tecnica infrastruttura, backup, configurazione chiavi e predisposizione RUNTS.",
-                    stato = "DA DEFINIRE"
                 )
             }
         }

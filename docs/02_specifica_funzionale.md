@@ -89,34 +89,48 @@ Questa specifica definisce lo stato di avanzamento e i requisiti di ciascun modu
 
 ---
 
-### Modulo 7: Ruoli e Permessi (RBAC)
+### Modulo 7: Ruoli e Organi Associativi (RBAC)
 * **Stato complessivo:** `[PARZIALMENTE DEFINITO]`
+* **Principio di Democraticità e Subordinazione del Software:**
+  - L'associazione è e rimane rigorosamente democratica. Il software è uno strumento subordinato e non un'autorità sopra gli organi. Nessun amministratore tecnico può scavalcare una decisione dell'Assemblea o del Consiglio Direttivo.
 * **Predisposizione Architetturale:**
-  - Matrice RBAC (Role-Based Access Control) con principio di minimo privilegio.
-  - Ruoli previsti: Visitatore Pubblico, Socio Ordinario, Segreteria / Amministrazione, Consiglio Direttivo, Amministratore Sistema.
+  - Matrice RBAC (Role-Based Access Control) con distinzione netta tra organi statutari sovrani/collegiali e ruoli tecnici di supporto:
+    - **Assemblea dei Soci (Organo Sovrano):** elegge le cariche, approva statuto e bilanci, delibera sugli indirizzi.
+    - **Consiglio Direttivo (Organo Esecutivo):** organo collegiale per l'amministrazione ordinaria e straordinaria.
+    - **Cariche Sociali Statutarie (Pres., Vicepres., Segr., Tes.):** svolgono le funzioni prescritte dallo statuto.
+    - **Socio Ordinario:** partecipa alla vita associativa con diritto di voto e gestisce in autonomia la propria scheda attività.
+    - **Amministratore Tecnico del Software:** ruolo ausiliario di supporto manutentivo; NON possiede poteri decisionali né statutari.
+    - **Visitatore Pubblico:** consultazione neutrale delle schede delle attività e dei documenti pubblici.
 * **Punti da stabilire statutariamente:**
   - `[DA DEFINIRE]` Diritti specifici di modifica su bilanci e libro soci.
-  - `[DA DEFINIRE]` Criteri per la nomina di amministratori tecnici di sistema.
+  - `[DA DEFINIRE]` Criteri per la nomina di amministratori tecnici di sistema e relativi protocolli di audit.
 
 ---
 
 ### Modulo 8: Vetrina Pubblica delle Attività dei Soci
 * **Stato complessivo:** `[DEFINITO]`
+* **Principio di Separazione Assoluta Associazione / Attività:**
+  - 1. L'associazione gestisce la propria vita associativa interna democratica.
+  - 2. La piattaforma gestisce la pubblicazione delle schede secondo le regole stabilite.
+  - 3. Il professionista/attività rimane del tutto autonomo nella gestione della propria prestazione o impresa.
+  - 4. Il visitatore sceglie in piena autonomia se contattare l'attività.
+  - 5. L'associazione NON è garante né intermediario: non verifica la perizia professionale, non garantisce la qualità dei servizi, non certifica le attività né assume responsabilità contrattuali.
+  - 6. Divieto assoluto di badge, sigilli, bollini, icone di garanzia o attestazioni di "certificato" nella vetrina pubblica.
 * **Requisiti Consolidati [DEFINITO]:**
-  1. **Regola Fondamentale di Visibilità:** Un'attività può essere pubblicata ed esposta nella vetrina SOLO ed ESCLUSIVAMENTE se è collegata a una persona che risulta **SOCIO ATTIVO** dell'associazione.
-  2. **Oscuramento Automatico:** Se un socio passa a stato non attivo (SOSPESO, RECEDUTO, IN_ATTESA), la sua attività viene immediatamente e automaticamente oscurata dalla vetrina pubblica.
+  1. **Regola di Ammissibilità alla Vetrina:** Un'attività può essere pubblicata ed esposta nella vetrina SOLO ed ESCLUSIVAMENTE se è collegata a una persona che risulta **SOCIO ATTIVO** dell'associazione. Si tratta di un requisito interno di ammissibilità, non di un'attestazione commerciale.
+  2. **Oscuramento Automatico:** Se un socio passa a stato non attivo (SOSPESO, RECEDUTO, IN_ATTESA), la sua attività viene immediatamente e automaticamente oscurata dalla vetrina pubblica e dalle ricerche.
   3. **Ricerca e Consultazione Libera:** Accessibile a qualunque visitatore, con ricerca testuale libera, filtri per categoria e filtri territoriali.
-  4. **Scheda Dettagliata dell'Attività:** Include nome attività, categoria, descrizione, elenco servizi, recapiti pubblici e orari.
-  5. **Badge di Certificazione:** Ogni scheda espone visibilmente il sigillo di "Attività Verificata - Socio Pro-Local Attivo" con codice tessera socio.
+  4. **Scheda Descrittiva Autonoma:** Include nome attività, categoria, descrizione, elenco servizi, recapiti pubblici e orari forniti dal titolare.
+  5. **Neutralità e Nota di Trasparenza:** Ogni scheda include una nota trasparente che attesta l'autonomia della gestione dell'attività e l'assenza di intermediazione o garanzia commerciale da parte di Pro-Local.
 * **Aspetti Aperti non Definitivi [DA DEFINIRE]:**
   - `[DA DEFINIRE]` **Numero di attività per socio:** attualmente impostato a 1 attività per socio a scopo dimostrativo; la possibilità di gestire più attività per il medesimo socio (rapporto 1 a N) è da definire con apposita delibera.
   - `[DA DEFINIRE]` **Obbligatorietà dei singoli dati della scheda:** elenco definitivo dei campi obbligatori vs facoltativi (es. telefono fisso, social, orari).
   - `[DA DEFINIRE]` **Modalità definitive di approvazione:** iter formale per la revisione (delibera consiliare, delega alla segreteria o meccanismo con termine perentorio).
   - `[DA DEFINIRE]` **Regole definitive sulle categorie:** tassonomia merceologica finale e criteri di assegnazione/richiesta di nuove categorie.
-  - `[DA DEFINIRE]` **Recensioni e valutazioni:** attualmente escluse; da valutare solo se circoscritte a feedback istituzionali tra soci certificati, escludendo recensioni commerciali aperte.
+  - `[DA DEFINIRE]` **Recensioni e valutazioni:** attualmente escluse; eventuale modulo di riscontro interno circoscritto tra soli soci da valutare statutariamente, escludendo recensioni commerciali aperte.
   - `[DA DEFINIRE]` **Geolocalizzazione avanzata e mappe:** integrazione cartografica interattiva e calcolo percorsi, subordinata a selezione provider GDPR-compliant senza tracciamento.
   - `[DA DEFINIRE]` **Messaggistica diretta in-app:** da valutare in relazione agli oneri di moderazione e alla normativa privacy.
-  - `[DA DEFINIRE]` **Pagamenti, quote e abbonamenti:** esclusa qualsiasi forma di e-commerce o intermediario di pagamento; l'eventuale rinnovo telematico della sola quota associativa resta da definire.
+  - `[DA DEFINIRE]` **Pagamenti, quote e abbonamenti:** esclusa qualsiasi forma di e-commerce o intermediazione di pagamento per le prestazioni dei soci; l'eventuale rinnovo telematico della sola quota associativa resta da definire.
   - `[DA DEFINIRE]` **Altre funzionalità commerciali:** escluso qualsiasi modello a pagamento o provvigione commerciale, incompatibile con la natura associativa.
 
 ---

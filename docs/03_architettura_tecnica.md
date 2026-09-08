@@ -42,7 +42,9 @@ L'applicazione è strutturata secondo il principio di **Separazione delle Respon
    - Moduli Istituzionali: `CouncilScreen`, `DashboardScreen`, `ProjectDocsScreen`, `ModularPlaceholdersScreen`.
    - Layout responsive adattivo (compatto per smartphone con NavigationBar, medio/espanso per tablet e desktop con NavigationRail permanente).
 
-### 3.3 Gestione della Sicurezza e Privacy
-- Separazione tra dati anagrafici dimostrativi e dati reali.
-- Tracciamento delle azioni rilevanti tramite modello immutabile `AuditLogEntry` con timestamp, operatore e livello di severità.
-- Modello di controllo accessi (RBAC) predisposto per token JWT o sessioni server-side sicure in fase di pubblicazione online.
+### 3.3 Gestione della Sicurezza, Democraticità e Privacy
+- **Principio di Democraticità Associativa:** La gerarchia del software rispecchia lo statuto: l'Assemblea dei Soci è l'organo sovrano, il Consiglio Direttivo l'organo esecutivo collegiale. I ruoli tecnici (amministratore di sistema/software) hanno funzioni puramente ausiliarie e di manutenzione, senza alcun potere decisionale o di veto sulle delibere degli organi democratici.
+- **Separazione Assoluta Associazione / Attività:** Architettura disaccoppiata. La piattaforma fornisce unicamente l'infrastruttura tecnologica per la visibilità autonoma delle attività dei soci. Nessun dato o flusso prevede intermediazioni di pagamento, rilascio di certificazioni professionali o garanzie contrattuali. L'interfaccia esclude badge o sigilli di garanzia.
+- **Separazione tra dati anagrafici e trasparenza:** Trattamento dati conforme al GDPR, con visibilità minima e tutela dei recapiti personali rispetto ai recapiti professionali pubblici.
+- **Audit Log Istituzionale:** Tracciamento delle azioni rilevanti tramite modello immutabile `AuditLogEntry` con timestamp, operatore e livello di severità.
+- **Modello di controllo accessi (RBAC):** Predisposto per token JWT o sessioni server-side sicure in fase di pubblicazione online.

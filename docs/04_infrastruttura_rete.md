@@ -11,8 +11,8 @@ La natura bivalente di Pro-Local (vetrina pubblica + gestione interna) guida l'a
 
 1. **Vetrina Pubblica ad Alta Efficienza (Read-Heavy):**
    - Esposizione pubblica delle schede attività tramite Edge Caching / CDN.
-   - Invalida automatica della cache non appena lo stato di un socio cambia da "ATTIVO" a "SOSPESO" o "DECADUTO" per garantire il rispetto assoluto della Regola Fondamentale.
-   - Nessun cookie di profilazione o tracciamento commerciale di terze parti.
+   - Invalida automatica della cache non appena lo stato di un socio cambia da "ATTIVO" a "SOSPESO" o "DECADUTO" per garantire il rispetto assoluto della regola interna di ammissibilità alla vetrina.
+   - Nessun cookie di profilazione o tracciamento commerciale di terze parti; rispetto della neutralità dell'informazione e assenza di gateway di pagamento commerciale per prestazioni private.
 2. **Area Riservata Soci e Amministrazione (Protected API):**
    - Accesso protetto tramite canale TLS 1.3 / HTTPS con autenticazione a due fattori (2FA) raccomandata per gli amministratori.
    - Sessioni con token a scadenza temporale e refresh protetto.
