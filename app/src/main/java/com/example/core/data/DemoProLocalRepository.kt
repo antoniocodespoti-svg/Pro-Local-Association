@@ -193,8 +193,8 @@ class DemoProLocalRepository : ProLocalRepository {
                 titolo = "Quorum Costitutivo e Maggioranze Qualificate",
                 stato = DefinitionState.DA_DEFINIRE,
                 descrizione = "Definizione del numero minimo di consiglieri presenti per la regolare costituzione del Consiglio (es. metà + 1).",
-                applicazioneSoftware = "Attualmente impostato su presenza di almeno 4 consiglieri, in attesa di approvazione statutaria definitiva.",
-                notaLegale = "Aspetto aperto [DA DEFINIRE] dall'Assemblea dei soci fondatori."
+                applicazioneSoftware = "Nessun quorum fisso nel dominio: le simulazioni dimostrative utilizzano valori puramente di esempio (DEMO), mentre la regola statutaria definitiva è rigorosamente [DA DEFINIRE].",
+                notaLegale = "Aspetto aperto [DA DEFINIRE] dall'Assemblea dei soci fondatori. Nessuna scelta tecnica dimostrativa costituisce regola associativa statutaria."
             )
         )
     )

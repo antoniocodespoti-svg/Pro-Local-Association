@@ -1,0 +1,14 @@
+{
+  "name": "prolocal-backend",
+  "version": "0.2.3-beta",
+  "description": "Pro-Local Association Web Backend API & Domain Layer",
+  "main": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "test": "node --experimental-strip-types --test tests/governance_security.test.ts",
+    "build": "tsc --noEmit"
+  },
+  "keywords": ["pro-local", "governance", "association", "domain", "rbac"],
+  "author": "Pro-Local Architecture Team",
+  "license": "UNLICENSED"
+}

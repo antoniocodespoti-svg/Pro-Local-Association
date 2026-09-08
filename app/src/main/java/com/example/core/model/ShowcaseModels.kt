@@ -7,13 +7,13 @@ package com.example.core.model
  */
 enum class MembershipStatus(
     val label: String,
-    val canPublishActivity: Boolean,
-    val badgeColorType: String
+    val canPublishActivity: Boolean
 ) {
-    ATTIVO("Socio Attivo", true, "SUCCESS"),
-    IN_ATTESA("In Attesa di Regolarizzazione", false, "WARNING"),
-    SOSPESO("Sospeso", false, "DANGER"),
-    RECEDUTO("Receduto / Cessato", false, "MUTED")
+    IN_ATTESA("In Attesa di Regolarizzazione", false),
+    ATTIVO("Socio Attivo", true),
+    SOSPESO("Sospeso", false),
+    RECEDUTO("Receduto / Cessato", false),
+    ESCLUSO("Escluso", false)
 }
 
 /**
@@ -130,6 +130,6 @@ data class BusinessActivity(
      * 2) Il socio collegato ha stato associativo ATTIVO
      */
     fun isVisibileInVetrina(memberStatus: MembershipStatus): Boolean {
-        return statoPubblicazione == PublicationStatus.PUBBLICATA && memberStatus.canPublishActivity
+        return com.example.core.security.AccessControlPolicy.isActivityPubliclyVisible(this, memberStatus)
     }
 }

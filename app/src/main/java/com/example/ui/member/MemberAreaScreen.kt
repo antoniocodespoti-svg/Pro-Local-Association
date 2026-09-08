@@ -644,6 +644,7 @@ fun MembershipStatusBadge(status: MembershipStatus) {
         MembershipStatus.IN_ATTESA -> Triple(StatusAttesaBg, StatusAttesaText, status.label)
         MembershipStatus.SOSPESO -> Triple(StatusSospesaBg, StatusSospesaText, status.label)
         MembershipStatus.RECEDUTO -> Triple(Slate200, Slate700, status.label)
+        MembershipStatus.ESCLUSO -> Triple(StatusSospesaBg, StatusSospesaText, status.label)
     }
 
     Surface(

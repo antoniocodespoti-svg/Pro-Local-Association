@@ -5,6 +5,30 @@ Tutte le modifiche al codice e alla documentazione di Pro-Local sono annotate in
 
 ---
 
+### Versione 0.2.3-beta (Fase 2.1 — Hardening Governance & Domain + Preparazione Web App)
+* **Data di Rilascio:** 2026-09-08
+* **Tipologia:** Hardening Governance, Separazione Amministratore Tecnico, RBAC & Scaffolding Web App (Frontend/Backend)
+
+#### Modifiche e Risultati Implementati:
+1. **Hardening Governance & Dominio (Kotlin + TypeScript):**
+   - Introduzione formale dello stato `ESCLUSO` in `MembershipStatus` (accanto a `IN_ATTESA`, `ATTIVO`, `SOSPESO`, `RECEDUTO`).
+   - Conferma che lo stato `ESCLUSO` inibisce istantaneamente e totalmente la visibilità nella vetrina pubblica.
+   - Quorum, maggioranze e procedure formali di esclusione permangono rigorosamente non definite (`[DA DEFINIRE]`).
+   - Rimosso qualsiasi `badgeColorType` residuo legato allo status per evitare commistioni con badge commerciali o di garanzia.
+2. **Access Control Policy & RBAC:**
+   - Creata policy centralizzata (`ProLocalRBAC.kt` in Android e `AccessControlPolicy.ts` in Backend).
+   - Separazione netta tra organi associativi sovrani/collegiali (`SOCIO`, `PRESIDENTE`, `CONSIGLIO_DIRETTIVO`, `ASSEMBLEA`) e il ruolo tecnico ausiliario (`AMMINISTRATORE_TECNICO`).
+   - All'Amministratore Tecnico è **esplicitamente e tassativamente negata** qualsiasi azione associativa (ammissione, sospensione, esclusione soci, modifiche statutarie, deliberazioni, elezioni, forzatura vetrina, modifica schede soci). Sono permesse solo operazioni tecniche di manutenzione, log e diagnostica.
+   - Ownership rigorosa: un socio può modificare solo ed esclusivamente la propria attività (`canEditActivity`); vietata la modifica di attività di altri soci.
+3. **Scaffolding Web App (`backend/` e `frontend/`):**
+   - **Backend (`backend/`):** Strutturato in TypeScript moderno (ESM, compatibile Node.js v22). Include layer `domain` (modelli e policy), `repositories` e `services` (`ShowcaseService`, `ActivityManagementService`). Suite di 16 test unitari di sicurezza eseguiti con successo.
+   - **Frontend (`frontend/`):** Strutturato in React + TypeScript con tipi allineati al backend REST, componenti `ShowcaseView`, `ActivityCard` (senza alcun badge o attestato promozionale) e `LegalNotice` permanente.
+4. **Preservazione Integrale del Prototipo Android:**
+   - Il codice Kotlin/Jetpack Compose è rimasto intatto e pienamente funzionante.
+   - Aggiunta suite di test unitari `ProLocalGovernanceSecurityTest.kt` eseguita con successo via Gradle (`:app:testDebugUnitTest`).
+
+---
+
 ### Versione 0.2.2-beta (Consolidamento Fase 2: Democraticità e Separazione Assoluta Attività)
 * **Data di Rilascio:** 2026-09-08
 * **Tipologia:** Consolidamento Principi di Governance, Neutralità Vetrina & Disaccoppiamento di Responsabilità

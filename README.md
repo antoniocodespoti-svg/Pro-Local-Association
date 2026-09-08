@@ -2,9 +2,10 @@
 
 Piattaforma digitale per la gestione democratica dell'associazione e vetrina pubblica delle attività dei soci.
 
-> **Stato Progetto:** Fase 2 Consolidata — Separazione Assoluta Associazione / Attività (Versione 0.2.2-beta)  
+> **Stato Progetto:** Fase 2.1 — Hardening Governance & Domain + Preparazione Web App (Versione 0.2.3-beta)  
 > **Natura Giuridica dell'Ente:** Associazione non riconosciuta (predisposta per eventuale futura iscrizione al RUNTS).  
-> **Due Dimensioni Distinte:** 1. Gestione della vita associativa democratica interna; 2. Portale vetrina neutrale per la visibilità delle attività dei soci.
+> **Due Dimensioni Distinte:** 1. Gestione della vita associativa democratica interna; 2. Portale vetrina neutrale per la visibilità delle attività dei soci.  
+> **Destinazione Architetturale Ufficiale:** Piattaforma Web modulare (Backend Node.js/TS REST API + Frontend React/TS) con preservazione integrale del prototipo Android di riferimento.
 
 ---
 

@@ -56,3 +56,14 @@
   2. Divieto assoluto di esporre nella vetrina o nelle schede badge, sigilli, bollini, "verificato", "certificato" o attestazioni di garanzia commerciale.
   3. Inserimento in ogni scheda di una chiara nota di trasparenza e autonomia.
 * **Conseguenze:** Esclusione di qualsiasi responsabilità di garanzia o intermediazione in capo all'associazione e trasparenza totale verso la cittadinanza.
+
+### ADR-010: Hardening Governance, Separazione del Ruolo Tecnico e Preparazione Architettura Web Indipendente (Fase 2.1)
+* **Data:** 2026-09-08
+* **Contesto:** Il progetto si evolve verso una piattaforma Web ufficiale a livelli disaccoppiati (React + TypeScript frontend, Node.js + TypeScript REST backend, futuro database PostgreSQL). Si richiede l'applicazione rigorosa dei principi di governance direttamente a livello di dominio backend (non solo nella UI).
+* **Decisione:**
+  1. **Subordinazione e perimetro del Ruolo Tecnico:** L'Amministratore Tecnico è formalmente e tecnicamente limitato alla manutenzione, alla diagnostica di sistema, ai log tecnici e alla configurazione infrastrutturale. È categoricamente inibito da qualsiasi azione associativa (ammissione soci, sospensione, esclusione, modifiche statutarie, deliberazioni, forzatura vetrina).
+  2. **Ownership Stretta delle Schede:** Un socio può modificare esclusivamente la propria attività commerciale/professionale (`activity.memberId == actorMemberId`). È preclusa la modifica di schede altrui.
+  3. **Completamento Stati Associativi:** Introdotto formalmente lo stato `ESCLUSO` nel dominio. Come per `SOSPESO`, `RECEDUTO` e `IN_ATTESA`, comporta l'oscuramento immediato della vetrina. I quorum e le maggioranze deliberative per disporre l'esclusione rimangono rigorosamente `[DA DEFINIRE]`.
+  4. **Predisposizione Web Multi-Livello:** Creati i moduli `backend/` e `frontend/` indipendenti dalla UI Android, con logica di sicurezza e RBAC applicata a livello di policy/servizio.
+* **Conseguenze:** Architettura robusta, testabile con test JVM/Robolectric sul prototipo Android e con test Node/TypeScript nel backend, pronta per la futura transizione verso PostgreSQL e deployment web.
+

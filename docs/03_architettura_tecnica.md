@@ -48,3 +48,27 @@ L'applicazione è strutturata secondo il principio di **Separazione delle Respon
 - **Separazione tra dati anagrafici e trasparenza:** Trattamento dati conforme al GDPR, con visibilità minima e tutela dei recapiti personali rispetto ai recapiti professionali pubblici.
 - **Audit Log Istituzionale:** Tracciamento delle azioni rilevanti tramite modello immutabile `AuditLogEntry` con timestamp, operatore e livello di severità.
 - **Modello di controllo accessi (RBAC):** Predisposto per token JWT o sessioni server-side sicure in fase di pubblicazione online.
+
+### 3.4 Architettura Target Web Platform (Fase 2.1+)
+Il progetto è ora ufficialmente indirizzato verso una piattaforma Web completa, mantenendo intatto e funzionante il prototipo Android di riferimento.
+
+```
+Browser
+  ↓
+Frontend Web (React + TypeScript in /frontend)
+  ↓
+REST API (JSON Contracts)
+  ↓
+Backend (Node.js + TypeScript in /backend)
+  ↓
+Domain / Application Policies (AccessControlPolicy, ShowcaseVisibility)
+  ↓
+Repositories (IMemberRepository, IBusinessActivityRepository)
+  ↓
+Database (PostgreSQL / Relazionale)
+```
+
+1. **La UI non è un confine di sicurezza:** Tutta la validazione dei permessi (RBAC), la verifica di ownership e il filtro di visibilità vetrina sono tassativamente eseguiti lato backend prima della serializzazione dei dati.
+2. **Backend Domain Layer (`/backend/src/domain`):** Modelli indipendenti, tipizzazione rigorosa e policies pure testabili in isolamento con test runner nativo Node.js.
+3. **Frontend Presentation Layer (`/frontend/src`):** Componenti React privi di qualsiasi logica autorizzativa o badge di certificazione, corredati da banner permanente di trasparenza e autonomia associativa.
+
