@@ -1,5 +1,5 @@
 import React from 'react';
-import type { PublicActivity } from '../types/domain.js';
+import type { PublicActivity } from '../types/domain.ts';
 
 interface ActivityCardProps {
   activity: PublicActivity;

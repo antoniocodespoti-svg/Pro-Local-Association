@@ -1,0 +1,25 @@
+{
+  "name": "pro-local-root",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:backend": "node --experimental-strip-types --test backend/tests/governance_security.test.ts backend/tests/api_http.test.ts backend/tests/postgres_repositories.test.ts backend/tests/auth_core.test.ts backend/tests/auth_service.test.ts",
+    "test:frontend": "npm test --prefix frontend",
+    "typecheck:backend": "tsc -p backend/tsconfig.json --noEmit",
+    "typecheck:frontend": "tsc -p frontend/tsconfig.json --noEmit",
+    "test": "npm run test:backend && npm run test:frontend"
+  },
+  "dependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "pg": "^8.23.0",
+    "pg-mem": "^3.0.14",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "typescript": "^7.0.2"
+  }
+}

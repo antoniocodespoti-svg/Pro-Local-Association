@@ -49,31 +49,54 @@ export class ShowcaseService {
       if (!member) continue;
 
       if (AccessControlPolicy.isActivityPubliclyVisible(act, member.statoAssociativo)) {
-        publicList.push({
-          id: act.id,
-          nomeAttivita: act.nomeAttivita,
-          categoria: act.categoria,
-          descrizioneBreve: act.descrizioneBreve,
-          descrizioneCompleta: act.descrizioneCompleta,
-          serviziOfferti: [...act.serviziOfferti],
-          localita: act.localita,
-          indirizzoPubblico: act.indirizzoPubblico,
-          telefonoPubblico: act.telefonoPubblico,
-          emailPubblica: act.emailPubblica,
-          sitoWeb: act.sitoWeb,
-          socialInstagram: act.socialInstagram,
-          socialLinkedin: act.socialLinkedin,
-          orariApertura: act.orariApertura,
-          dataUltimoAggiornamento: act.dataUltimoAggiornamento,
-          trasparenza: {
-            autonomiaAttivita: true,
-            notaLegale:
-              "Spazio informativo di ammissibilità associativa. L'associazione Pro-Local non verifica la perizia tecnica, non garantisce i servizi né assume responsabilità contrattuali."
-          }
-        });
+        publicList.push(this.toPublicDto(act));
       }
     }
 
     return publicList;
+  }
+
+  /**
+   * Recupera il dettaglio pubblico di una singola attività.
+   * Se l'attività non è pubblicata o il socio non è attivo, restituisce null
+   * per impedire il bypass della vetrina tramite accesso diretto all'endpoint.
+   */
+  async getPublicActivityById(id: string): Promise<PublicActivityDto | null> {
+    const act = await this.activityRepo.findById(id);
+    if (!act) return null;
+
+    const member = await this.memberRepo.findById(act.memberId);
+    if (!member) return null;
+
+    if (!AccessControlPolicy.isActivityPubliclyVisible(act, member.statoAssociativo)) {
+      return null;
+    }
+
+    return this.toPublicDto(act);
+  }
+
+  private toPublicDto(act: BusinessActivity): PublicActivityDto {
+    return {
+      id: act.id,
+      nomeAttivita: act.nomeAttivita,
+      categoria: act.categoria,
+      descrizioneBreve: act.descrizioneBreve,
+      descrizioneCompleta: act.descrizioneCompleta,
+      serviziOfferti: [...act.serviziOfferti],
+      localita: act.localita,
+      indirizzoPubblico: act.indirizzoPubblico,
+      telefonoPubblico: act.telefonoPubblico,
+      emailPubblica: act.emailPubblica,
+      sitoWeb: act.sitoWeb,
+      socialInstagram: act.socialInstagram,
+      socialLinkedin: act.socialLinkedin,
+      orariApertura: act.orariApertura,
+      dataUltimoAggiornamento: act.dataUltimoAggiornamento,
+      trasparenza: {
+        autonomiaAttivita: true,
+        notaLegale:
+          "Spazio informativo di ammissibilità associativa. L'associazione Pro-Local non verifica la perizia tecnica, non garantisce i servizi né assume responsabilità contrattuali."
+      }
+    };
   }
 }

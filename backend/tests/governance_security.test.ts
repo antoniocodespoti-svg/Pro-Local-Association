@@ -11,6 +11,7 @@ import type { BusinessActivity, Member } from '../src/domain/models.ts';
 import { AccessControlPolicy } from '../src/domain/policies/AccessControlPolicy.ts';
 import { InMemoryMemberRepository } from '../src/repositories/MemberRepository.ts';
 import { InMemoryBusinessActivityRepository } from '../src/repositories/BusinessActivityRepository.ts';
+import { InMemoryAuditLogRepository } from '../src/repositories/AuditLogRepository.ts';
 import { ShowcaseService } from '../src/services/ShowcaseService.ts';
 import { ActivityManagementService } from '../src/services/ActivityManagementService.ts';
 
@@ -216,6 +217,73 @@ describe('Pro-Local Backend Governance & RBAC Security Tests', () => {
         });
       },
       /Accesso negato/
+    );
+  });
+
+  it('ActivityManagementServiceAuditIntegration: registra audit solo su successo', async () => {
+    const activityRepo = new InMemoryBusinessActivityRepository([sampleActivityMemberA]);
+    const auditRepo = new InMemoryAuditLogRepository();
+    const service = new ActivityManagementService(activityRepo, auditRepo);
+
+    await service.updateActivity('mem-A', ProLocalRole.SOCIO, 'act-01', {
+      descrizioneBreve: 'Descrizione aggiornata con audit'
+    });
+
+    const logs = await auditRepo.findAll();
+    assert.strictEqual(logs.length, 1, 'Deve essere registrata una sola voce di audit');
+    assert.strictEqual(logs[0].actorId, 'mem-A');
+    assert.strictEqual(logs[0].resourceId, 'act-01');
+    assert.strictEqual(logs[0].action, SystemAction.MODIFICA_ATTIVITA);
+    assert.strictEqual(logs[0].resourceType, 'BUSINESS_ACTIVITY');
+    assert(logs[0].timestamp);
+  });
+
+  it('ActivityManagementServiceAuditIntegration: se activityRepo.update fallisce, auditRepo.log NON viene chiamato', async () => {
+    const activityRepo = new InMemoryBusinessActivityRepository([sampleActivityMemberA]);
+    // Sovrascriviamo update per simulare un errore del database
+    activityRepo.update = async () => {
+      throw new Error('Errore I/O simulato nel database attività');
+    };
+
+    const auditRepo = new InMemoryAuditLogRepository();
+    let auditLogCalled = false;
+    auditRepo.log = async (entry) => {
+      auditLogCalled = true;
+      return InMemoryAuditLogRepository.prototype.log.call(auditRepo, entry);
+    };
+
+    const service = new ActivityManagementService(activityRepo, auditRepo);
+
+    await assert.rejects(
+      async () => {
+        await service.updateActivity('mem-A', ProLocalRole.SOCIO, 'act-01', {
+          descrizioneBreve: 'Non deve essere salvata'
+        });
+      },
+      /Errore I\/O simulato/
+    );
+
+    assert.strictEqual(auditLogCalled, false, 'auditRepo.log non deve mai essere invocato se l update fallisce');
+    const logs = await auditRepo.findAll();
+    assert.strictEqual(logs.length, 0);
+  });
+
+  it('ActivityManagementServiceAuditIntegration: se auditRepo.log fallisce, l errore si propaga', async () => {
+    const activityRepo = new InMemoryBusinessActivityRepository([sampleActivityMemberA]);
+    const auditRepo = new InMemoryAuditLogRepository();
+    auditRepo.log = async () => {
+      throw new Error('Audit storage failure simulato');
+    };
+
+    const service = new ActivityManagementService(activityRepo, auditRepo);
+
+    await assert.rejects(
+      async () => {
+        await service.updateActivity('mem-A', ProLocalRole.SOCIO, 'act-01', {
+          descrizioneBreve: 'Update che fallisce a livello audit'
+        });
+      },
+      /Audit storage failure simulato/
     );
   });
 

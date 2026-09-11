@@ -128,3 +128,17 @@ export interface BusinessActivity {
   dataUltimoAggiornamento: string;
   noteRevisioneAdmin?: string;
 }
+
+/**
+ * Voce di Audit Log per la tracciabilità delle operazioni di sistema e applicative.
+ * Struttura append-only; non utilizzabile per alterare decisioni o stati associativi.
+ */
+export interface AuditLogEntry {
+  id: string;
+  actorId: string;
+  action: string;
+  resourceType: string;
+  resourceId: string;
+  timestamp: string;
+  metadata?: Record<string, unknown>;
+}

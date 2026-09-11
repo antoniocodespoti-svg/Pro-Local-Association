@@ -1,19 +1,27 @@
 import type { BusinessActivity, ProLocalRole } from '../domain/models.ts';
-import { PublicationStatus } from '../domain/models.ts';
+import { PublicationStatus, SystemAction } from '../domain/models.ts';
 import { AccessControlPolicy } from '../domain/policies/AccessControlPolicy.ts';
 import type { IBusinessActivityRepository } from '../repositories/BusinessActivityRepository.ts';
+import type { IAuditLogRepository } from '../repositories/AuditLogRepository.ts';
 
 export class ActivityManagementService {
   private activityRepo: IBusinessActivityRepository;
+  private auditRepo?: IAuditLogRepository;
 
-  constructor(activityRepo: IBusinessActivityRepository) {
+  constructor(
+    activityRepo: IBusinessActivityRepository,
+    auditRepo?: IAuditLogRepository
+  ) {
     this.activityRepo = activityRepo;
+    this.auditRepo = auditRepo;
   }
 
   /**
    * Modifica i dati dell'attività verificando sia il Ruolo che l'Ownership della risorsa.
    * Lancia un errore se il socio tenta di modificare un'attività non sua
    * o se l'amministratore tecnico tenta di modificare l'attività.
+   * 
+   * Se presente un auditRepo, registra un AuditLogEntry immutabile associato all'attore autenticato.
    */
   async updateActivity(
     actorMemberId: string,
@@ -43,6 +51,26 @@ export class ActivityManagementService {
       dataUltimoAggiornamento: new Date().toISOString().split('T')[0]
     };
 
-    return await this.activityRepo.update(updated);
+    const saved = await this.activityRepo.update(updated);
+
+    // Registrazione audit trail post-persistenza (senza esporre credenziali o dati personali non necessari)
+    if (this.auditRepo) {
+      const auditEntry = {
+        id: `audit-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+        actorId: actorMemberId,
+        action: SystemAction.MODIFICA_ATTIVITA,
+        resourceType: 'BUSINESS_ACTIVITY',
+        resourceId: saved.id,
+        timestamp: new Date().toISOString(),
+        metadata: {
+          previousPublicationStatus: existing.statoPubblicazione,
+          newPublicationStatus: saved.statoPubblicazione,
+          modifiedFields: Object.keys(updates)
+        }
+      };
+      await this.auditRepo.log(auditEntry);
+    }
+
+    return saved;
   }
 }

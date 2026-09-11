@@ -32,3 +32,54 @@ export interface ActivityFilterState {
   categoriaSelezionata: string | null;
   ricercaTestuale: string;
 }
+
+export interface MemberProfileDemo {
+  id: string;
+  codiceSocio: string;
+  nomeCognome: string;
+  emailDemo: string;
+  dataIscrizione: string;
+  statoAssociativo: string;
+  quotaSocialeInRegola: boolean;
+}
+
+export interface MemberAreaResponse {
+  authMode: string;
+  notaAutenticazione: string;
+  socio: MemberProfileDemo;
+  attivita: {
+    id: string;
+    memberId: string;
+    nomeAttivita: string;
+    categoria: string;
+    descrizioneBreve: string;
+    descrizioneCompleta: string;
+    serviziOfferti: string[];
+    localita: string;
+    indirizzoPubblico?: string;
+    telefonoPubblico?: string;
+    emailPubblica?: string;
+    sitoWeb?: string;
+    socialInstagram?: string;
+    socialLinkedin?: string;
+    orariApertura?: string;
+    statoPubblicazione: string;
+    dataUltimoAggiornamento: string;
+  } | null;
+  tutteAttivita: any[];
+}
+
+export interface UpdateActivityInput {
+  nomeAttivita: string;
+  descrizioneBreve: string;
+  descrizioneCompleta: string;
+  serviziOfferti: string[];
+  localita: string;
+  indirizzoPubblico?: string;
+  telefonoPubblico?: string;
+  emailPubblica?: string;
+  sitoWeb?: string;
+  socialInstagram?: string;
+  socialLinkedin?: string;
+  orariApertura?: string;
+}

@@ -67,3 +67,15 @@
   4. **Predisposizione Web Multi-Livello:** Creati i moduli `backend/` e `frontend/` indipendenti dalla UI Android, con logica di sicurezza e RBAC applicata a livello di policy/servizio.
 * **Conseguenze:** Architettura robusta, testabile con test JVM/Robolectric sul prototipo Android e con test Node/TypeScript nel backend, pronta per la futura transizione verso PostgreSQL e deployment web.
 
+### ADR-011: Implementazione REST API Server, Web App Pubblica e Area Socio Demo (Fase 2.2)
+* **Data:** 2026-09-08
+* **Contesto:** Attivazione del primo stack web funzionante end-to-end (Browser → React → REST API → Application Services → Domain Policy → Repository in-memory).
+* **Decisione:**
+  1. **Server REST API con Express:** Endpoints `GET /api/showcase`, `GET /api/activities/:id`, `GET /api/members/me`, `PUT /api/activities/:id` con validazione input severa e codici HTTP coerenti (200, 400, 403, 404, 500).
+  2. **Protezione Accessi e Ownership:** `PUT /api/activities/:id` applica `AccessControlPolicy`: il socio può modificare solo la propria scheda; l'Amministratore Tecnico e altri soci ricevono 403. La modifica riporta lo stato in `IN_ATTESA_APPROVAZIONE`.
+  3. **Protezione Dettaglio Pubblico:** `GET /api/activities/:id` restituisce 404 per schede non pubbliche (nessun bypass tramite URL diretto).
+  4. **Autenticazione Demo:** Utilizzo esplicito di header `X-Demo-Member-Id` chiaramente documentato come transitorio per la Fase 2.2.
+  5. **Frontend Web React:** Navigazione client `/`, `/attivita/:id`, `/socio`, `/socio/attivita` con componente `LegalNotice` e assenza totale di badge o sigilli promozionali.
+* **Conseguenze:** Web app e API server completi e coperti da test automatizzati, con prototipo Android intatto.
+
+

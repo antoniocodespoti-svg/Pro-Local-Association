@@ -72,3 +72,22 @@ Database (PostgreSQL / Relazionale)
 2. **Backend Domain Layer (`/backend/src/domain`):** Modelli indipendenti, tipizzazione rigorosa e policies pure testabili in isolamento con test runner nativo Node.js.
 3. **Frontend Presentation Layer (`/frontend/src`):** Componenti React privi di qualsiasi logica autorizzativa o badge di certificazione, corredati da banner permanente di trasparenza e autonomia associativa.
 
+### 3.5 Implementazione REST API Server & Flusso Operativo (Fase 2.2)
+La catena operativa browser-backend è ora attiva con server REST Express:
+
+```
+Browser (React Single Page Views: /, /attivita/:id, /socio, /socio/attivita)
+  ↓ HTTP JSON Fetch (Headers: X-Demo-Member-Id, Content-Type: application/json)
+REST API Server (Express in /backend/src/app.ts)
+  ↓ ActivityValidator (Validazione server-side, lunghezze, email/url format)
+Application Services (ShowcaseService, ActivityManagementService)
+  ↓ AccessControlPolicy (Verifica ownership socio e visibilità vetrina)
+In-Memory Repositories (InMemoryMemberRepository, InMemoryBusinessActivityRepository)
+```
+
+- **Enforcement di Sicurezza Server-Side:** Il client React invia l'intento di modifica; il server verifica che `actorRole == SOCIO` e `activity.memberId == actorMemberId`. In caso contrario, risponde con `403 Forbidden`.
+- **Nessun Bypass Vetrina:** L'endpoint `GET /api/activities/:id` applica `isActivityPubliclyVisible` e risponde con `404` se l'attività è in bozza o il socio non è attivo.
+- **Autenticazione DEMO:** Header esplicito `X-Demo-Member-Id` per la simulazione del socio in questa fase; l'autenticazione con sessioni crittografiche sicure e password hashing è demandata alle fasi successive.
+- **Stato Database:** I dati risiedono nelle istanze dimostrative in-memory; PostgreSQL non è ancora configurato come repository operativo.
+
+

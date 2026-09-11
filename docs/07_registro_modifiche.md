@@ -5,6 +5,34 @@ Tutte le modifiche al codice e alla documentazione di Pro-Local sono annotate in
 
 ---
 
+### Versione 0.2.4-beta (Fase 2.2 — REST API + Prima Web App Pubblica + Area Socio Demo)
+* **Data di Rilascio:** 2026-09-08
+* **Tipologia:** REST API Server, Web App React End-to-End, Area Socio & Ownership Enforcement
+
+#### Modifiche e Risultati Implementati:
+1. **REST API Server (`backend/src/app.ts`, `backend/src/index.ts`):**
+   - Implementato server HTTP REST con Express e CORS per ambiente di sviluppo locale.
+   - Endpoint minimi attivi e verificati:
+     - `GET /api/showcase`: vetrina pubblica neutrale, restituisce solo attività con `PublicationStatus == PUBBLICATA` e socio con `MembershipStatus == ATTIVO`.
+     - `GET /api/activities/:id`: scheda dettaglio pubblica; restituisce 404 per attività non pubbliche per impedire bypass tramite URL diretto.
+     - `GET /api/members/me`: area socio demo con header esplicito `X-Demo-Member-Id` e nota di collaudo trasparente (autenticazione reale demandata a fasi successive).
+     - `PUT /api/activities/:id`: aggiornamento scheda attività con validazione input rigorosa (`ActivityValidator`) e vincolo di ownership (`activity.memberId == actorMemberId`). Blocco categorico con 403 Forbidden sia per tentativi di modifica tra soci diversi, sia per tentativi da parte dell'Amministratore Tecnico.
+     - Ritorno automatico allo stato `IN_ATTESA_APPROVAZIONE` in seguito a modifica da parte del socio.
+2. **Web App Frontend (`frontend/src/`):**
+   - Routing browser leggero per `/`, `/attivita/:id`, `/socio`, `/socio/attivita`.
+   - `ShowcaseView`: renderizza la lista attività con barra di ricerca, filtro categoria e banner permanente `LegalNotice`.
+   - `ActivityDetailView`: vista dettaglio con contatti e note di autonomia, nessun badge o bollino commerciale.
+   - `MemberDashboardView`: dashboard demo con visualizzazione stato associativo e selettore di identità demo.
+   - `ActivityEditView`: modulo di aggiornamento dati attività del socio accessibile da tastiera, con label semantiche e gestione errori.
+3. **Astrazione Repository Preservata:**
+   - Confermata l'architettura `InMemoryMemberRepository` e `InMemoryBusinessActivityRepository`; nessun database PostgreSQL introdotto prematuramente.
+4. **Test Suite Automatizzata:**
+   - 31 test nel Backend (16 di governance & RBAC e 15 end-to-end REST API HTTP con server in ascolto su porta effimera).
+   - 12 test nel Frontend (6 di SSR rendering e verifica assenza badge promozionali, 6 di integrazione API Client con gestione errori e ownership).
+   - Prototipo Android (`:app:testDebugUnitTest`) intatto con 33 test eseguiti con successo.
+
+---
+
 ### Versione 0.2.3-beta (Fase 2.1 — Hardening Governance & Domain + Preparazione Web App)
 * **Data di Rilascio:** 2026-09-08
 * **Tipologia:** Hardening Governance, Separazione Amministratore Tecnico, RBAC & Scaffolding Web App (Frontend/Backend)

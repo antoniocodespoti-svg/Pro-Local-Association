@@ -2,10 +2,10 @@
 
 Piattaforma digitale per la gestione democratica dell'associazione e vetrina pubblica delle attività dei soci.
 
-> **Stato Progetto:** Fase 2.1 — Hardening Governance & Domain + Preparazione Web App (Versione 0.2.3-beta)  
+> **Stato Progetto:** Fase 2.4 — Consolidamento PostgreSQL, Transazioni, Audit Logging & Test Suite (Versione 0.2.4-beta)  
 > **Natura Giuridica dell'Ente:** Associazione non riconosciuta (predisposta per eventuale futura iscrizione al RUNTS).  
 > **Due Dimensioni Distinte:** 1. Gestione della vita associativa democratica interna; 2. Portale vetrina neutrale per la visibilità delle attività dei soci.  
-> **Destinazione Architetturale Ufficiale:** Piattaforma Web modulare (Backend Node.js/TS REST API + Frontend React/TS) con preservazione integrale del prototipo Android di riferimento.
+> **Destinazione Architetturale Ufficiale:** Piattaforma Web (React + TypeScript / Backend Node.js + TypeScript REST API) con prototipo Android intatto e funzionante.
 
 ---
 
@@ -57,10 +57,16 @@ La documentazione è parte integrante del progetto ed è consultabile sia nei fi
 ---
 
 ## 💻 Architettura del Codice
-- **Linguaggio:** Kotlin
-- **Interfaccia Utente:** Jetpack Compose (Material Design 3, Responsive Multi-Device: Smartphone, Tablet, Desktop)
-- **Separazione dei Livelli:** Clean Architecture / MVVM
-  - `com.example.core.model`: Entità e modelli di business
-  - `com.example.core.data`: Repository contract e provider dati dimostrativi
-  - `com.example.ui`: Schermate, componenti riutilizzabili e tema responsive
+- **Piattaforma Web (Ufficiale Fase 2.2+ / Fase 3.2 Core Auth):**
+  - **Backend (`/backend`):** Node.js + TypeScript REST API (Express), modelli di dominio, policy RBAC server-side, validazione severa input (`ActivityValidator`), doppio driver di persistenza (`DB_DRIVER=memory` e `DB_DRIVER=postgres` con migrazioni transazionali e pool), audit trail attivo sulle mutazioni.
+  - **Auth Core & Persistence (Fase 3.2):** Migrazione PostgreSQL `004_create_auth_tables` con tabelle `user_accounts` e `sessions`. Separazione ontologica tra Identità Autenticabile (`UserAccount`) e Membro (`Member`), vincolo CHECK per `MEMBER` (`member_id` obbligatorio) e `TECHNICAL_ADMIN` (`member_id` nullo). Password hashing sicuro con `node:crypto.scrypt` (formato versionabile PHC), raw session ID a 32 byte di entropia (non persistito) e lookup server-side tramite hash SHA-256. Gestione timeout (inattività 30 min, timeout assoluto 8 ore).
+  - **Auth Application Service & Session Lifecycle (Fase 3.3):** `AuthService` disaccoppiato da database e framework HTTP. Flusso di login con normalizzazione email, prevenzione account enumeration (`InvalidCredentialsError`), account lockout (5 tentativi falliti consecutivi = blocco 15 minuti), emissione sessione server-side con hash SHA-256, risoluzione dell'attore autenticato (`resolveAuthenticatedActor`) con lettura dinamica da `Member` per i soci (ruolo e stato associativo non persistiti staticamente in sessione) e ruolo `AMMINISTRATORE_TECNICO` per `TECHNICAL_ADMIN` con `memberId=null`. Logout idempotente con revoca immediata della sessione. Audit log per `LOGIN_SUCCESS`, `LOGIN_FAILED` e `LOGOUT` senza emissione di password o token raw. *Nota: La Demo Auth basata su header rimane attiva e pienamente funzionante in questa fase; i controller HTTP `/api/auth/login`, `/logout`, `/me` e i form frontend verranno introdotti nelle fasi successive.*
+  - **Frontend (`/frontend`):** React + TypeScript, interfaccia responsive e accessibile (Vetrina `/`, Scheda `/attivita/:id`, Dashboard `/socio`, Gestione `/socio/attivita`), nota permanente di trasparenza (`LegalNotice`), assenza totale di badge ingannevoli.
+- **Prototipo Android/Kotlin (Preservato):**
+  - **Linguaggio:** Kotlin
+  - **Interfaccia Utente:** Jetpack Compose (Material Design 3, Responsive Multi-Device: Smartphone, Tablet, Desktop)
+  - **Separazione dei Livelli:** Clean Architecture / MVVM
+    - `com.example.core.model`: Entità e modelli di business
+    - `com.example.core.data`: Repository contract e provider dati dimostrativi
+    - `com.example.ui`: Schermate, componenti riutilizzabili e tema responsive
 - **Dati:** Dati esclusivamente dimostrativi (nessun dato personale reale).
