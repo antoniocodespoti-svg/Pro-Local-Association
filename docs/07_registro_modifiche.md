@@ -5,6 +5,71 @@ Tutte le modifiche al codice e alla documentazione di Pro-Local sono annotate in
 
 ---
 
+### Consolidamento Tecnico — Session Cleanup & File Migrazione 004 (Stato Attuale del Codice)
+* **Data di Rilascio:** [Data non disponibile nel repository locale]
+* **Tipologia:** Consolidamento DDL Relazionale, Manutenzione Automatica Sessioni & Estensione Test Suite
+
+#### Modifiche e Risultati Implementati:
+1. **File Migrazione SQL 004 (`backend/src/db/migrations/004_create_auth_tables.sql`):**
+   - Creato il file fisico DDL per la migrazione 004, allineandolo strutturalmente a `001`, `002` e `003`.
+   - Contiene la definizione identica delle tabelle `user_accounts` e `sessions`, con indici, foreign key in cascade e vincolo CHECK di separazione ontologica `chk_actor_type_member`.
+   - Aggiunto test automatizzato di coerenza che verifica l'equivalenza semantica tra il file su disco e la stringa registrata nell'array `MIGRATIONS` in `backend/src/db/migrator.ts`.
+2. **Servizio di Pulizia Sessioni Scadute (`backend/src/services/SessionCleanupService.ts`):**
+   - Implementato il servizio schedulato che invoca periodicamente `sessionRepo.deleteExpired()` a intervalli di 60 minuti.
+   - Failure isolation: errori temporanei del database vengono catturati e registrati nei log senza causare il crash del server HTTP né interrompere i cicli successivi.
+   - Lifecycle controllabile: metodi `start()` e `stop()` con gestione del graceful shutdown su segnali di terminazione `SIGTERM` e `SIGINT` in `backend/src/index.ts`.
+3. **Suite di Test e Risultati:**
+   - La suite di test raggiunge **151 test complessivi, tutti verificati e superati**:
+     - 122 test Backend (`governance_security`, `api_http`, `postgres_repositories`, `auth_core`, `auth_service`, `auth_http`, `session_cleanup`).
+     - 29 test Frontend (`frontend_components`, `auth_integration`, `api_client`).
+     - 0 errori di typecheck TypeScript in backend e frontend.
+
+---
+
+### Fase 3 — Autenticazione a Sessioni Server-Side, Cookie HttpOnly, CSRF & Rimozione Demo Auth
+* **Data di Rilascio:** [Data non disponibile nel repository locale]
+* **Tipologia:** Autenticazione Reale OWASP-Compliant, Session Management, Protezione CSRF & Frontend Auth
+
+#### Modifiche e Risultati Implementati:
+1. **Core Autenticazione e Crittografia (`backend/src/auth/`):**
+   - Hashing delle password con algoritmo Scrypt (`node:crypto.scrypt`, salt CSPRNG a 16 byte, parametri N=32768, r=8, p=1, keyLen=64, formato versionabile PHC) e verifica con comparazione timing-safe.
+   - Prevenzione dell'account enumeration con risposte neutre 401 su login non valido.
+   - Account lockout: blocco di sicurezza di 15 minuti (`423 Locked`) dopo 5 tentativi consecutivi falliti.
+   - Generazione di token di sessione raw a 32 byte via CSPRNG (64 caratteri hex); memorizzazione nel database unicamente tramite hash SHA-256.
+   - Gestione dei timeout: timeout per inattività di 30 minuti e timeout assoluto di 8 ore.
+2. **Trasporto HTTP & Sicurezza Cookie:**
+   - Rilascio del cookie di sessione `prolocal_session` con flag `HttpOnly: true`, `SameSite: 'lax'`, `Path: '/'`, `Max-Age: 28800` (8 ore) e `Secure: true` in produzione.
+   - Protezione CSRF: verifica dell'header personalizzato `X-Requested-With: ProLocalApp` su tutte le richieste mutative (`POST`, `PUT`, `PATCH`, `DELETE`) effettuate con cookie di sessione; restituzione di 403 Forbidden in caso di violazione.
+   - Controller REST attivi: `POST /api/auth/login`, `POST /api/auth/logout` (revoca immediata), `GET /api/auth/me`.
+   - Rimozione completa e definitiva della precedente Demo Auth basata su header (`X-Demo-Member-Id`, `X-Demo-Role`).
+3. **Frontend Integration (`frontend/src/`):**
+   - Gestione autenticazione reattiva con `AuthContext` e hook `useAuth`.
+   - Viste `LoginView` e `TechnicalAdminView` con gestione chiara degli stati di errore.
+   - Configurazione di `apiClient.ts` con `credentials: 'include'` e header CSRF automatico.
+   - Intercettazione centralizzata della sessione scaduta (401) e ripristino automatico dello stato non autenticato.
+
+---
+
+### Fase 2.4 — Consolidamento PostgreSQL, Transazioni, Audit Logging & Modelli Relazionali
+* **Data di Rilascio:** [Data non disponibile nel repository locale]
+* **Tipologia:** Persistenza Relazionale, Transazioni ACID, Migrazioni DDL & Audit Trail
+
+#### Modifiche e Risultati Implementati:
+1. **Driver PostgreSQL e Connection Pool:**
+   - Supporto per PostgreSQL relazionale configurabile tramite `DB_DRIVER=postgres`, preservando il driver in-memory (`DB_DRIVER=memory`) per i test.
+   - Inizializzazione pool di connessioni nativo `pg.Pool` con supporto a configurazione tramite URL o singole variabili d'ambiente.
+2. **Migrazioni DDL Transazionali:**
+   - `DatabaseMigrator` con esecuzione transazionale, rollback automatico e tracciamento in `schema_migrations`.
+   - Migrazioni create: `001_create_members`, `002_create_business_activities`, `003_create_audit_logs`, `004_create_auth_tables`.
+3. **Separazione Ontologica UserAccount / Member:**
+   - Tabella `user_accounts` collegata a `members` tramite foreign key con vincolo CHECK che impone `member_id IS NULL` per `TECHNICAL_ADMIN` e `member_id` obbligatorio e univoco per `MEMBER`.
+   - Tabella `sessions` con foreign key in cascata (`ON DELETE CASCADE`) verso `user_accounts`.
+4. **Repository PostgreSQL:**
+   - Implementati `PostgresMemberRepository`, `PostgresBusinessActivityRepository`, `PostgresAuditLogRepository`, `PostgresUserAccountRepository`, `PostgresSessionRepository`.
+   - Test di integrazione del layer relazionale eseguiti con `pg-mem`.
+
+---
+
 ### Versione 0.2.4-beta (Fase 2.2 — REST API + Prima Web App Pubblica + Area Socio Demo)
 * **Data di Rilascio:** 2026-09-08
 * **Tipologia:** REST API Server, Web App React End-to-End, Area Socio & Ownership Enforcement

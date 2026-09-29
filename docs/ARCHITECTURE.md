@@ -1,7 +1,7 @@
-# PRO-LOCAL ASSOCIATION - ARCHITETTURA TECNICA WEB (FASE 2.2)
+# PRO-LOCAL ASSOCIATION - ARCHITETTURA TECNICA WEB (FASE 3 CONSOLIDATA)
 
 ## 1. Obiettivo Architetturale
-Dalla Fase 2.2, la **Piattaforma Web** (React + TypeScript / Node.js + TypeScript / REST API) costituisce la **destinazione architetturale ufficiale** di Pro-Local.
+Dalla Fase 2.2 in avanti, la **Piattaforma Web** (React + TypeScript / Node.js + TypeScript / REST API) costituisce la **destinazione architetturale ufficiale** di Pro-Local.
 Il prototipo Android nativo (Kotlin + Jetpack Compose) è pienamente preservato nel repository come riferimento funzionale e non viene cancellato.
 
 ---
@@ -13,29 +13,39 @@ Il flusso applicativo segue rigorosamente la separazione architetturale a livell
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                           1. BROWSER                                    │
-│   Navigazione URL: /, /attivita/:id, /socio, /socio/attivita            │
+│   Navigazione URL: /, /attivita/:id, /login, /socio, /socio/attivita    │
 └────────────────────────────────────┬────────────────────────────────────┘
                                      │ Interazione Utente / HTTP Req
 ┌────────────────────────────────────▼────────────────────────────────────┐
 │                    2. REACT FRONTEND (Client Untrusted)                 │
-│   Componenti di Presentazione (ShowcaseView, Detail, Dashboard, Edit)   │
-│   - Nessuna logica di autorizzazione o calcolo di visibilità            │
+│   Componenti di Presentazione (ShowcaseView, Detail, Dashboard, Edit,   │
+│                                LoginView, TechnicalAdminView)           │
+│   - Gestione autenticazione reattiva con AuthContext / useAuth          │
+│   - Client HTTP ProLocalApiClient con credentials: 'include'            │
+│   - Emissione automatica header CSRF X-Requested-With: ProLocalApp      │
+│   - Gestione centralizzata session expiration su 401                    │
 │   - Disaccoppiamento legale e assenza di badge/bollini                  │
-│   - Client HTTP ProLocalApiClient con header demo                       │
 └────────────────────────────────────┬────────────────────────────────────┘
-                                     │ REST API (fetch HTTP JSON)
+                                     │ REST API (Cookie + CSRF Header)
 ┌────────────────────────────────────▼────────────────────────────────────┐
-│                    3. REST API CONTROLLERS (Express)                    │
-│   Routing: /api/showcase, /api/activities/:id, /api/members/me          │
+│                    3. REST API CONTROLLERS & MIDDLEWARE (Express)       │
+│   Routing: /api/auth/*, /api/showcase, /api/activities/*,               │
+│            /api/members/me, /api/health                                 │
+│   - Middleware createAuthMiddleware: estrazione cookie prolocal_session │
+│   - Verifica CSRF su richieste mutative (POST, PUT, PATCH, DELETE)      │
 │   - Validazione rigorosa dell'input (ActivityValidator)                 │
-│   - Estrazione contesto attore (X-Demo-Member-Id, X-Demo-Role)          │
 └────────────────────────────────────┬────────────────────────────────────┘
                                      │ DTO / Command
 ┌────────────────────────────────────▼────────────────────────────────────┐
-│                    4. APPLICATION SERVICES                              │
-│   ShowcaseService, ActivityManagementService, MemberService             │
-│   - Coordinamento use-case e orchestrazione dei workflow                │
-│   - Reset dello stato a IN_ATTESA_APPROVAZIONE in caso di modifica       │
+│                    4. APPLICATION & SECURITY SERVICES                   │
+│   AuthService, SessionManager, SessionCleanupService,                   │
+│   ShowcaseService, ActivityManagementService                            │
+│   - Verifica password con Scrypt e timing-safe comparison               │
+│   - Prevenzione enumeration e account lockout (5 fallimenti = 15 min)   │
+│   - Lookup sessione via SHA-256 (idle 30m / absolute 8h)                │
+│   - Risoluzione dinamica stato associativo da Member                    │
+│   - Reset dello stato a IN_ATTESA_APPROVAZIONE in caso di modifica      │
+│   - Cleanup periodico sessioni scadute ogni 60 minuti                   │
 └────────────────────────────────────┬────────────────────────────────────┘
                                      │ Verifica Policy
 ┌────────────────────────────────────▼────────────────────────────────────┐
@@ -47,10 +57,11 @@ Il flusso applicativo segue rigorosamente la separazione architetturale a livell
 └────────────────────────────────────┬────────────────────────────────────┘
                                      │ Interfaccia Repository
 ┌────────────────────────────────────▼────────────────────────────────────┐
-│                    6. DATA ACCESS LAYER (In-Memory)                     │
-│   IMemberRepository, IBusinessActivityRepository                        │
-│   - Strutture in-memory controllate per la Fase 2.2                     │
-│   - Transizione futura a PostgreSQL senza impatto sul dominio           │
+│                    6. DATA ACCESS LAYER                                 │
+│   IMemberRepository, IBusinessActivityRepository,                       │
+│   IAuditLogRepository, IUserAccountRepository, ISessionRepository       │
+│   - Driver PostgreSQL (pool, migrazioni 001–004, transazioni)          │
+│   - Driver In-Memory (per test unitari isolati)                         │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -60,36 +71,51 @@ Il flusso applicativo segue rigorosamente la separazione architetturale a livell
 
 Tutti gli endpoint rispondono con intestazioni `Content-Type: application/json; charset=utf-8` e gestiscono CORS.
 
-### 3.1 Vetrina Pubblica
+### 3.1 Autenticazione e Sessioni
+- **`POST /api/auth/login`**
+  - **Descrizione:** Autenticazione utente con email e password.
+  - **Comportamento di Sicurezza:** Verifica password con Scrypt, protezione anti-enumeration (401 neutro su credenziali errate o utente non trovato), blocco account dopo 5 tentativi consecutivi (423 Locked con indicazione di `lockedUntil`), emissione cookie `prolocal_session` con flag `HttpOnly`.
+  - **Risposta:** `200 OK` con dettagli utente e ruolo, oppure `400`, `401`, `403`, `423`, `500`.
+
+- **`POST /api/auth/logout`**
+  - **Descrizione:** Revoca immediata della sessione attiva.
+  - **Comportamento di Sicurezza:** Richiede header `X-Requested-With: ProLocalApp` se invocato con cookie. Rimuove la sessione dal database e cancella il cookie sul client. Idempotente.
+  - **Risposta:** `200 OK` (`messaggio: "Logout effettuato con successo"`), oppure `403`, `500`.
+
+- **`GET /api/auth/me`**
+  - **Descrizione:** Verifica della sessione attiva e recupero dell'identità dell'attore.
+  - **Risposta:** `200 OK` con dati profilo sicuro e ruolo, oppure `401 Unauthorized` se sessione assente o scaduta.
+
+### 3.2 Vetrina Pubblica
 - **`GET /api/showcase`**
   - **Descrizione:** Elenco pubblico delle schede attività approvate.
   - **Criterio di Dominio:** Restituisce unicamente attività con `statoPubblicazione == 'PUBBLICATA'` e socio titolare con `statoAssociativo == 'ATTIVO'`.
   - **Filtro Privacy:** I dati personali e statutari del socio non sono esposti; include il blocco di trasparenza e disaccoppiamento legale.
   - **Risposta:** `200 OK` con array di `PublicActivityDto`.
 
-### 3.2 Dettaglio Scheda Attività
+### 3.3 Dettaglio Scheda Attività
 - **`GET /api/activities/:id`**
   - **Descrizione:** Dettaglio completo per consultazione pubblica della singola scheda.
   - **Regola di Sicurezza:** Se la scheda non esiste, o se appartiene a un socio non `ATTIVO`, o se ha stato diverso da `PUBBLICATA`, risponde invariabilmente con `404 Not Found` per impedire enumeration o leak informativo.
   - **Risposta:** `200 OK` con `PublicActivityDto` oppure `404 Not Found`.
 
-### 3.3 Area Socio (Profilo Personale)
+### 3.4 Area Socio (Profilo Personale)
 - **`GET /api/members/me`**
   - **Descrizione:** Dati anagrafici associativi del socio autenticato e scheda attività collegata.
-  - **Autenticazione:** Header `X-Demo-Member-Id` (Default: `socio-01`).
-  - **Risposta:** `200 OK` con profilo socio, stato associativo, stato della scheda, nota di collaudo demo. Se l'id non esiste, `404 Not Found`.
+  - **Autenticazione / Autorizzazione:** Richiede cookie di sessione valido appartenente a un utente di tipo `MEMBER`. Se l'attore è `TECHNICAL_ADMIN`, risponde con `403 Forbidden`. Se non autenticato, risponde con `401 Unauthorized`.
+  - **Risposta:** `200 OK` con profilo socio, stato associativo e scheda attività.
 
-### 3.4 Modifica Scheda Attività
+### 3.5 Modifica Scheda Attività
 - **`PUT /api/activities/:id`**
   - **Descrizione:** Aggiornamento della scheda da parte del socio titolare.
-  - **Autenticazione / Autorizzazione:**
-    - `X-Demo-Member-Id`: ID del socio richiedente.
-    - `X-Demo-Role`: `SOCIO`.
+  - **Autenticazione / Autorizzazione / CSRF:**
+    - Cookie di sessione valido (ruolo `SOCIO`).
+    - Header obbligatorio `X-Requested-With: ProLocalApp`.
   - **Controlli Server-Side (AccessControlPolicy & ActivityManagementService):**
-    1. **Verifica Ruolo:** Se l'attore è `AMMINISTRATORE_TECNICO`, la richiesta è respinta con `403 Forbidden` (l'amministratore tecnico non ha facoltà di modificare i dati delle attività dei soci).
+    1. **Verifica Ruolo:** Se l'attore è `AMMINISTRATORE_TECNICO`, la richiesta è respinta con `403 Forbidden`.
     2. **Verifica Ownership:** Se l'attore è `SOCIO` ma non è il titolare della scheda (`activity.memberId !== actorMemberId`), la richiesta è respinta con `403 Forbidden`.
     3. **Validazione Input:** I dati sono convalidati tramite `ActivityValidator` (lunghezze minime/massime, campi obbligatori, array servizi non vuoto). Se non validi: `400 Bad Request`.
-    4. **Workflow Ripubblicazione:** L'aggiornamento imposta tassativamente `statoPubblicazione = IN_ATTESA_APPROVAZIONE`. La scheda non sarà più visibile nella vetrina pubblica fino alla nuova approvazione statutaria.
+    4. **Workflow Ripubblicazione:** L'aggiornamento imposta tassativamente `statoPubblicazione = IN_ATTESA_APPROVAZIONE`. La scheda non sarà visibile nella vetrina pubblica fino alla nuova approvazione statutaria.
   - **Risposta:** `200 OK` con scheda aggiornata e messaggio di workflow.
 
 ---
@@ -117,28 +143,19 @@ Il sistema applica il principio di **autorizzazione centralizzata server-side**:
 
 ---
 
-## 5. Meccanismo di Autenticazione Demo (`X-Demo-Member-Id`)
-
-> [!CAUTION]
-> **AVVISO DI SICUREZZA:** Il meccanismo di autenticazione basato sull'header HTTP `X-Demo-Member-Id` è **esclusivamente uno strumento di collaudo per la Fase 2.2**.
-> **NON È UN'AUTENTICAZIONE DI PRODUZIONE.**
-> Nelle fasi successive, questo meccanismo sarà sostituito da un'infrastruttura di autenticazione standardizzata con sessioni sicure HTTP-only / token JWT crittografici conformi alle linee guida di sicurezza applicativa.
-
----
-
-## 6. Stato dei Componenti del Progetto
+## 5. Stato dei Componenti del Progetto
 
 | Componente | Tecnologia | Stato Attuale | Note |
 |---|---|---|---|
-| **Web REST Backend** | Node.js + Express + TypeScript | **Operativo (Fase 2.2)** | 31 test di sicurezza, RBAC e integrazione HTTP verdi. |
-| **Web Frontend** | React 18/19 + TypeScript | **Operativo (Fase 2.2)** | Vetrina pubblica, navigazione browser, area socio, modifica scheda, 12 test di integrazione e rendering verdi. |
-| **Persistenza Dati** | In-Memory Repositories | **Operativo (Fase 2.2)** | PostgreSQL è escluso per ora e predisposto per fasi successive. |
-| **Prototipo Mobile** | Android / Kotlin / Jetpack Compose | **Preservato e Integro** | 33 test unitari/Robolectric verdi; non cancellato. |
+| **Web REST Backend** | Node.js + Express + TypeScript | **Operativo (Fase 3 Consolidata)** | 122 test di sicurezza, RBAC, Scrypt, sessioni, migrazioni PG e cleanup verdi. |
+| **Web Frontend** | React 18/19 + TypeScript | **Operativo (Fase 3 Consolidata)** | Vetrina pubblica, login con credenziali, area socio protetta, CSRF, 29 test di integrazione e rendering verdi. |
+| **Persistenza Dati** | PostgreSQL (001–004) & In-Memory | **Operativo (Fase 3 Consolidata)** | Migrazioni DDL transazionali, connection pool e pulizia periodica automatica (SessionCleanupService). |
+| **Prototipo Mobile** | Android / Kotlin / Jetpack Compose | **Preservato e Integro** | Prototipo autonomo preservato nella directory `/app`. |
 | **Governance & Statuto** | Domain Policies & Types | **Conforme** | Voci `[DA DEFINIRE]` preservate; nessun potere associativo all'amministratore tecnico; nessun badge/certificazione. |
 
 ---
 
-## 7. Verifica e Regression Testing
-- Test suite Backend & RBAC: `npm run test:backend` (31 passing).
-- Test suite Frontend & SSR Components: `npm run test:frontend` (12 passing).
-- Regression suite Prototipo Android: `gradle :app:testDebugUnitTest` (33 passing).
+## 6. Verifica e Regression Testing
+- Suite test completa del progetto: `npm test` (151 passing).
+  - Test Backend & RBAC: `npm run test:backend` (122 passing).
+  - Test Frontend & Components: `npm run test:frontend` (29 passing).

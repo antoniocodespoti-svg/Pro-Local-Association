@@ -98,8 +98,8 @@ Questa specifica definisce lo stato di avanzamento e i requisiti di ciascun modu
     - **Assemblea dei Soci (Organo Sovrano):** elegge le cariche, approva statuto e bilanci, delibera sugli indirizzi.
     - **Consiglio Direttivo (Organo Esecutivo):** organo collegiale per l'amministrazione ordinaria e straordinaria.
     - **Cariche Sociali Statutarie (Pres., Vicepres., Segr., Tes.):** svolgono le funzioni prescritte dallo statuto.
-    - **Socio Ordinario:** partecipa alla vita associativa con diritto di voto e gestisce in autonomia la propria scheda attività.
-    - **Amministratore Tecnico del Software:** ruolo ausiliario di supporto manutentivo; NON possiede poteri decisionali né statutari.
+    - **Socio Ordinario (`MEMBER` / `SOCIO`):** partecipa alla vita associativa con diritto di voto e gestisce in autonomia la propria scheda attività (`Ownership Rule`).
+    - **Amministratore Tecnico (`TECHNICAL_ADMIN` / `AMMINISTRATORE_TECNICO`):** ruolo ausiliario di supporto manutentivo e diagnostico; NON possiede poteri decisionali né statutari. Ha `member_id` rigorosamente nullo (`NULL`), non accede al libro soci riservato, non può visualizzare o modificare le schede commerciali dei soci e non può forzare la pubblicazione in vetrina.
     - **Visitatore Pubblico:** consultazione neutrale delle schede delle attività e dei documenti pubblici.
 * **Punti da stabilire statutariamente:**
   - `[DA DEFINIRE]` Diritti specifici di modifica su bilanci e libro soci.
@@ -138,11 +138,13 @@ Questa specifica definisce lo stato di avanzamento e i requisiti di ciascun modu
 ### Modulo 9: Area Riservata Socio
 * **Stato complessivo:** `[DEFINITO]`
 * **Requisiti Consolidati [DEFINITO]:**
-  1. **Accesso e Profilo:** Visualizzazione anagrafica socio, codice tessera, data di ammissione e stato associativo in tempo reale.
-  2. **Gestione Scheda Attività:** Compilazione, modifica e aggiornamento autonomo dei dati della propria attività commerciale/professionale.
-  3. **Monitoraggio Ciclo di Vita:** Stato della pubblicazione visibile in ogni momento: `BOZZA`, `IN_ATTESA_APPROVAZIONE`, `PUBBLICATA`, `SOSPESA`, `RIFIUTATA`.
-  4. **Sottomissione Formale:** Possibilità di richiedere la pubblicazione o una nuova approvazione; blocco automatico della richiesta se il socio non è in regola.
-  5. **Anteprima Pubblica:** Visualizzazione fedele di come la scheda appare ai visitatori nella vetrina.
+  1. **Autenticazione Sicura:** Accesso tramite credenziali personali (email e password) verificate con algoritmo crittografico Scrypt; protezione anti-enumeration (risposta generica su credenziali errate) e blocco temporaneo dell'account (lockout di 15 minuti) dopo 5 tentativi consecutivi falliti.
+  2. **Sessione Controllata:** Sessione gestita server-side tramite cookie HttpOnly; scadenza per inattività dopo 30 minuti e scadenza assoluta dopo 8 ore; possibilità di logout esplicito con revoca immediata.
+  3. **Accesso e Profilo:** Visualizzazione anagrafica socio, codice tessera, data di ammissione e stato associativo in tempo reale, risolti dinamicamente dal server.
+  4. **Gestione Scheda Attività:** Compilazione, modifica e aggiornamento autonomo dei dati della propria attività commerciale/professionale (protetto da controllo di ownership e anti-CSRF).
+  5. **Monitoraggio Ciclo di Vita:** Stato della pubblicazione visibile in ogni momento: `BOZZA`, `IN_ATTESA_APPROVAZIONE`, `PUBBLICATA`, `SOSPESA`, `RIFIUTATA`.
+  6. **Sottomissione Formale:** Possibilità di richiedere la pubblicazione o una nuova approvazione; blocco automatico della richiesta se il socio non è in regola.
+  7. **Anteprima Pubblica:** Visualizzazione fedele di come la scheda appare ai visitatori nella vetrina.
 * **Requisiti da Definire [DA DEFINIRE]:**
   - `[DA DEFINIRE]` Rinnovo e pagamento telematico della quota associativa annuale.
   - `[DA DEFINIRE]` Caricamento autonomo di gallerie fotografiche e loghi vettoriali.
@@ -152,6 +154,7 @@ Questa specifica definisce lo stato di avanzamento e i requisiti di ciascun modu
 ### Modulo 10: Amministrazione e Vigilanza Vetrina
 * **Stato complessivo:** `[DEFINITO]`
 * **Requisiti Consolidati [DEFINITO]:**
-  1. **Coda di Revisione:** Revisione delle schede sottomesse dai soci, approvazione con pubblicazione o sospensione motivata con note.
-  2. **Libro Soci e Controllo Visibilità:** Modifica dello stato dei soci con impatto diretto e reattivo istantaneo sulla vetrina.
-  3. **Audit Log Istituzionale:** Tracciamento non ripudiabile di ogni cambio di stato, pubblicazione o sospensione.
+  1. **Console Tecnica Dedicata:** L'Amministratore Tecnico accede a un'interfaccia tecnica distinta (`TechnicalAdminView`) con dichiarazione esplicita di separazione dei poteri, limitata alla diagnostica di sistema e alla consultazione dell'audit trail.
+  2. **Coda di Revisione Amministrativa:** Revisione delle schede sottomesse dai soci riservata agli organi associativi preposti, approvazione con pubblicazione o sospensione motivata con note.
+  3. **Libro Soci e Controllo Visibilità:** Modifica dello stato dei soci con impatto diretto e reattivo istantaneo sulla vetrina pubblica.
+  4. **Audit Log Istituzionale:** Tracciamento non ripudiabile e immutabile di ogni cambio di stato, pubblicazione, sospensione o accesso tramite tabella dedicata.

@@ -1,5 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { newDb } from 'pg-mem';
 import { DatabaseMigrator, MIGRATIONS } from '../src/db/migrator.ts';
 import { createPgPool } from '../src/db/connection.ts';
@@ -332,5 +334,60 @@ describe('PostgreSQL Adapter & Migrations Tests (via pg-mem)', () => {
 
     const logsAfter = await inMemRepo.findAll();
     assert.strictEqual(logsAfter.length, 1, 'Lo store interno in-memory deve rimanere intatto');
+  });
+
+  it('File Migrazione 004: 004_create_auth_tables.sql esiste sul filesystem ed è semanticamente equivalente a MIGRATIONS in migrator.ts', () => {
+    // Risoluzione percorso del file .sql
+    const migrationPath = resolve(process.cwd(), 'backend/src/db/migrations/004_create_auth_tables.sql');
+    assert.strictEqual(existsSync(migrationPath), true, 'Il file backend/src/db/migrations/004_create_auth_tables.sql deve esistere');
+
+    const fileContent = readFileSync(migrationPath, 'utf-8');
+    assert(fileContent.includes('CREATE TABLE IF NOT EXISTS user_accounts'), 'Deve contenere la creazione di user_accounts');
+    assert(fileContent.includes('CREATE TABLE IF NOT EXISTS sessions'), 'Deve contenere la creazione di sessions');
+    assert(fileContent.includes('CONSTRAINT chk_actor_type_member'), 'Deve contenere il vincolo chk_actor_type_member');
+    assert(fileContent.includes('ON DELETE CASCADE'), 'Deve contenere ON DELETE CASCADE per le sessioni');
+
+    // Confronto normalizzato con il DDL registrato in MIGRATIONS
+    const migrationInCode = MIGRATIONS.find((m) => m.name === '004_create_auth_tables');
+    assert(migrationInCode, 'La migrazione 004 deve essere presente nell array MIGRATIONS');
+
+    // Normalizziamo spazi e commenti per verificare equivalenza semantica
+    const cleanFileSql = fileContent.replace(/--.*$/gm, '').replace(/\s+/g, ' ').trim();
+    const cleanCodeSql = migrationInCode.sql.replace(/--.*$/gm, '').replace(/\s+/g, ' ').trim();
+    assert.strictEqual(cleanFileSql, cleanCodeSql, 'Il DDL nel file .sql deve essere identico al DDL in migrator.ts');
+  });
+
+  it('Esecuzione DDL da 004_create_auth_tables.sql: applica lo schema SQL del file su database vergine dopo 001-003 senza errori', async () => {
+    const { pool } = createTestDb();
+    const migrator = new DatabaseMigrator(pool);
+
+    // Inizializza schema_migrations ed esegue 001, 002, 003
+    await migrator.initMigrationTable();
+    for (const m of MIGRATIONS.filter((mig) => mig.name !== '004_create_auth_tables')) {
+      await pool.query(m.sql);
+      await pool.query('INSERT INTO schema_migrations (name, applied_at) VALUES ($1, now());', [m.name]);
+    }
+
+    // Applica direttamente il file 004_create_auth_tables.sql
+    const migrationPath = resolve(process.cwd(), 'backend/src/db/migrations/004_create_auth_tables.sql');
+    const sqlContent = readFileSync(migrationPath, 'utf-8');
+
+    // Esecuzione dello script SQL completo
+    await pool.query(sqlContent);
+
+    // Verifica esistenza tabelle create e vincoli
+    const userTableCheck = await pool.query(`
+      SELECT column_name, data_type, is_nullable
+      FROM information_schema.columns
+      WHERE table_name = 'user_accounts';
+    `);
+    assert(userTableCheck.rows.length > 0, 'La tabella user_accounts deve essere stata creata');
+
+    const sessionTableCheck = await pool.query(`
+      SELECT column_name, data_type, is_nullable
+      FROM information_schema.columns
+      WHERE table_name = 'sessions';
+    `);
+    assert(sessionTableCheck.rows.length > 0, 'La tabella sessions deve essere stata creata');
   });
 });

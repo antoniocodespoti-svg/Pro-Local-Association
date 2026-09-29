@@ -78,4 +78,54 @@
   5. **Frontend Web React:** Navigazione client `/`, `/attivita/:id`, `/socio`, `/socio/attivita` con componente `LegalNotice` e assenza totale di badge o sigilli promozionali.
 * **Conseguenze:** Web app e API server completi e coperti da test automatizzati, con prototipo Android intatto.
 
+### ADR-012: Adozione di PostgreSQL, Connection Pool e Migrazioni Transazionali DDL (Fase 2.4)
+* **Data:** [Data non disponibile nel repository locale]
+* **Contesto:** Necessità di persistenza relazionale sicura e conforme allo schema di dominio, con supporto a concorrenza, vincoli di integrità referenziale e transazioni ACID.
+* **Decisione:**
+  1. Introduzione del driver PostgreSQL con gestione pool (`pg.Pool`) e supporto configurabile tramite `DB_DRIVER=postgres` (mantenendo `DB_DRIVER=memory` per i test veloci).
+  2. Implementazione del `DatabaseMigrator` transazionale: applica sequenzialmente le migrazioni DDL con rollback automatico in caso di errore e tracciamento nella tabella `schema_migrations`.
+  3. Creazione delle migrazioni 001 (`members`), 002 (`business_activities`) e 003 (`audit_logs`) con vincoli di integrità e indici su stati e foreign key.
+* **Conseguenze:** Persistenza relazionale solida, audit log immutabile e test di integrazione eseguiti tramite `pg-mem`.
+
+### ADR-013: Autenticazione a Sessioni Server-Side, Hashing Scrypt e Cookie HttpOnly (Fase 3)
+* **Data:** [Data non disponibile nel repository locale]
+* **Contesto:** Superamento del meccanismo transitorio di Demo Auth basato su header; necessità di autenticazione con credenziali reali conforme agli standard OWASP.
+* **Decisione:**
+  1. Hashing crittografico delle password tramite `node:crypto.scrypt` (N=32768, r=8, p=1, keyLen=64, salt CSPRNG 16 byte, formato PHC versionabile) e comparazione timing-safe (`crypto.timingSafeEqual`).
+  2. Prevenzione dell'account enumeration con risposta 401 generica neutra su login fallito.
+  3. Account lockout: blocco temporaneo di 15 minuti (`423 Locked`) dopo 5 tentativi consecutivi falliti.
+  4. Gestione sessioni server-side: generazione token raw a 32 byte via CSPRNG e archiviazione nel DB unicamente tramite hash SHA-256 (nessun token memorizzato in chiaro).
+  5. Emissione del cookie di sessione `prolocal_session` con `HttpOnly: true`, `SameSite: 'lax'`, `Path: '/'`, `Max-Age: 28800` (8 ore) e `Secure` abilitato in produzione.
+  6. Politica di scadenza: timeout per inattività di 30 minuti e timeout assoluto di 8 ore.
+  7. Rimozione integrale del precedente meccanismo Demo Auth (`X-Demo-Member-Id`, `X-Demo-Role`).
+* **Conseguenze:** Autenticazione sicura e protetta da attacchi XSS; le sessioni possono essere revocate istantaneamente lato server.
+
+### ADR-014: Protezione CSRF su Richieste Mutative tramite Header Personalizzato
+* **Data:** [Data non disponibile nel repository locale]
+* **Contesto:** L'utilizzo di cookie di sessione per l'autenticazione espone l'applicazione a potenziali attacchi Cross-Site Request Forgery su operazioni che modificano dati.
+* **Decisione:**
+  1. Obbligo della presenza dell'header personalizzato `X-Requested-With: ProLocalApp` su tutte le richieste mutative (`POST`, `PUT`, `PATCH`, `DELETE`) effettuate con cookie di sessione.
+  2. Rifiuto immediato con `403 Forbidden` (`Protezione CSRF violata`) in assenza dell'header valido.
+  3. L'API client nel frontend invia automaticamente tale header su tutte le mutazioni.
+* **Conseguenze:** Protezione contro invii forzati da form HTML terzi, garantita dalle restrizioni CORS dei browser sugli header personalizzati.
+
+### ADR-015: Separazione Ontologica tra UserAccount e Member e Isolamento Tecnico
+* **Data:** [Data non disponibile nel repository locale]
+* **Contesto:** Rischio di commistione tra l'identità autenticabile e il ruolo di socio dell'associazione; necessità di garantire l'assoluta subordinazione del ruolo tecnico.
+* **Decisione:**
+  1. Creazione nel DB della tabella `user_accounts` con vincolo CHECK che impone `member_id IS NULL` se `actor_type = 'TECHNICAL_ADMIN'` e `member_id` obbligatorio e univoco se `actor_type = 'MEMBER'`.
+  2. L'Amministratore Tecnico non possiede una scheda socio, non può visualizzare o modificare le attività commerciali dei soci (403), e accede unicamente alla console tecnica diagnostica.
+  3. Risoluzione dinamica dei ruoli e dello stato associativo dal record `Member` ad ogni richiesta per gli utenti socio.
+* **Conseguenze:** Rispetto assoluto del principio statutario di separazione dei poteri; nessun amministratore tecnico può alterare la vita democratica o commerciale dell'ente.
+
+### ADR-016: Servizio Schedulato di Pulizia Sessioni Scadute (SessionCleanupService)
+* **Data:** [Data non disponibile nel repository locale]
+* **Contesto:** Le sessioni scadute per inattività o timeout assoluto rischiano di accumularsi nel database se l'utente non effettua il logout esplicito.
+* **Decisione:**
+  1. Creazione del servizio applicativo `SessionCleanupService` che invoca `sessionRepo.deleteExpired()` a intervalli regolari di 60 minuti.
+  2. Failure isolation: cattura di eventuali errori di rete o DB nel log senza bloccare l'event loop di Node.js né far cadere il server HTTP.
+  3. Integrazione con il lifecycle di avvio del server e interruzione controllata del timer su segnali di sistema (`SIGTERM`, `SIGINT`).
+* **Conseguenze:** Manutenzione automatica del database senza leak di risorse o timer orfani.
+
+
 

@@ -7,6 +7,7 @@ import { PostgresAuditLogRepository } from './repositories/PostgresAuditLogRepos
 import { PostgresUserAccountRepository } from './repositories/PostgresUserAccountRepository.ts';
 import { PostgresSessionRepository } from './repositories/PostgresSessionRepository.ts';
 import { seedDemoData } from './db/seeds/demoSeed.ts';
+import { SessionCleanupService } from './services/SessionCleanupService.ts';
 
 const PORT = process.env.PORT || 3001;
 const DB_DRIVER = process.env.DB_DRIVER || 'memory';
@@ -42,9 +43,16 @@ async function bootstrap() {
     };
   }
 
+  let cleanupService: SessionCleanupService | null = null;
+  if (customRepos?.sessionRepo) {
+    cleanupService = new SessionCleanupService(customRepos.sessionRepo);
+    cleanupService.start();
+    console.log('[Pro-Local DB] Cleanup periodico sessioni scadute avviato (intervallo: 60 minuti).');
+  }
+
   const app = createProLocalApp(customRepos);
 
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     console.log(`[Pro-Local REST API] Server avviato su http://localhost:${PORT}`);
     console.log(`[Pro-Local REST API] Driver di persistenza attivo: ${DB_DRIVER.toUpperCase()}`);
     console.log('[Pro-Local REST API] Autenticazione: Sessione HTTP reale basata su cookie HttpOnly');
@@ -57,6 +65,21 @@ async function bootstrap() {
     console.log(' - GET /api/members/me');
     console.log(' - PUT /api/activities/:id');
   });
+
+  const gracefulShutdown = () => {
+    console.log('[Pro-Local] Ricevuto segnale di terminazione, arresto del server...');
+    if (cleanupService) {
+      cleanupService.stop();
+      console.log('[Pro-Local] Servizio di session cleanup arrestato.');
+    }
+    server.close(() => {
+      console.log('[Pro-Local] Server HTTP arrestato con successo.');
+      process.exit(0);
+    });
+  };
+
+  process.on('SIGTERM', gracefulShutdown);
+  process.on('SIGINT', gracefulShutdown);
 }
 
 bootstrap().catch(err => {

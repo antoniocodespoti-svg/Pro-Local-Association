@@ -2,7 +2,7 @@
 
 Piattaforma digitale per la gestione democratica dell'associazione e vetrina pubblica delle attività dei soci.
 
-> **Stato Progetto:** Fase 2.4 — Consolidamento PostgreSQL, Transazioni, Audit Logging & Test Suite (Versione 0.2.4-beta)  
+> **Stato Progetto:** Fase 3 (Consolidata) — Autenticazione a Sessioni Server-Side, Cookie HttpOnly, CSRF, PostgreSQL (001–004), Session Cleanup & Test Suite (151 test verdi) (Versione package 0.2.4-beta)  
 > **Natura Giuridica dell'Ente:** Associazione non riconosciuta (predisposta per eventuale futura iscrizione al RUNTS).  
 > **Due Dimensioni Distinte:** 1. Gestione della vita associativa democratica interna; 2. Portale vetrina neutrale per la visibilità delle attività dei soci.  
 > **Destinazione Architetturale Ufficiale:** Piattaforma Web (React + TypeScript / Backend Node.js + TypeScript REST API) con prototipo Android intatto e funzionante.
@@ -53,15 +53,31 @@ La documentazione è parte integrante del progetto ed è consultabile sia nei fi
 5. [Decisioni Progettuali (ADR)](docs/05_decisioni_progettuali.md)
 6. [Regole dell'Associazione](docs/06_regole_associazione.md)
 7. [Registro delle Modifiche (Changelog)](docs/07_registro_modifiche.md)
+8. [Architettura Web e Flusso Dati](docs/ARCHITECTURE.md)
 
 ---
 
 ## 💻 Architettura del Codice
-- **Piattaforma Web (Ufficiale Fase 2.2+ / Fase 3.2 Core Auth):**
-  - **Backend (`/backend`):** Node.js + TypeScript REST API (Express), modelli di dominio, policy RBAC server-side, validazione severa input (`ActivityValidator`), doppio driver di persistenza (`DB_DRIVER=memory` e `DB_DRIVER=postgres` con migrazioni transazionali e pool), audit trail attivo sulle mutazioni.
-  - **Auth Core & Persistence (Fase 3.2):** Migrazione PostgreSQL `004_create_auth_tables` con tabelle `user_accounts` e `sessions`. Separazione ontologica tra Identità Autenticabile (`UserAccount`) e Membro (`Member`), vincolo CHECK per `MEMBER` (`member_id` obbligatorio) e `TECHNICAL_ADMIN` (`member_id` nullo). Password hashing sicuro con `node:crypto.scrypt` (formato versionabile PHC), raw session ID a 32 byte di entropia (non persistito) e lookup server-side tramite hash SHA-256. Gestione timeout (inattività 30 min, timeout assoluto 8 ore).
-  - **Auth Application Service & Session Lifecycle (Fase 3.3):** `AuthService` disaccoppiato da database e framework HTTP. Flusso di login con normalizzazione email, prevenzione account enumeration (`InvalidCredentialsError`), account lockout (5 tentativi falliti consecutivi = blocco 15 minuti), emissione sessione server-side con hash SHA-256, risoluzione dell'attore autenticato (`resolveAuthenticatedActor`) con lettura dinamica da `Member` per i soci (ruolo e stato associativo non persistiti staticamente in sessione) e ruolo `AMMINISTRATORE_TECNICO` per `TECHNICAL_ADMIN` con `memberId=null`. Logout idempotente con revoca immediata della sessione. Audit log per `LOGIN_SUCCESS`, `LOGIN_FAILED` e `LOGOUT` senza emissione di password o token raw. *Nota: La Demo Auth basata su header rimane attiva e pienamente funzionante in questa fase; i controller HTTP `/api/auth/login`, `/logout`, `/me` e i form frontend verranno introdotti nelle fasi successive.*
-  - **Frontend (`/frontend`):** React + TypeScript, interfaccia responsive e accessibile (Vetrina `/`, Scheda `/attivita/:id`, Dashboard `/socio`, Gestione `/socio/attivita`), nota permanente di trasparenza (`LegalNotice`), assenza totale di badge ingannevoli.
+- **Piattaforma Web (Ufficiale Fase 3 Consolidata):**
+  - **Backend (`/backend`):** Node.js + TypeScript REST API (Express), modelli di dominio, policy RBAC server-side, validazione severa input (`ActivityValidator`), doppio driver di persistenza (`DB_DRIVER=memory` e `DB_DRIVER=postgres` con migrazioni transazionali e pool), audit trail immutabile sulle mutazioni.
+  - **Autenticazione & Sessioni Server-Side:**
+    - Password hashing tramite algoritmo crittografico Scrypt (`node:crypto.scrypt`, salt CSPRNG 16 byte, parametri N=32768, r=8, p=1, keyLen=64, comparazione timing-safe).
+    - Prevenzione dell'account enumeration su login (risposta generica 401 sia per credenziali errate sia per utente inesistente).
+    - Politica di blocco account (account lockout: 5 tentativi consecutivi falliti determinano blocco temporaneo di 15 minuti, stato HTTP 423).
+    - Gestione sessioni server-side: token raw casuale a 32 byte generato da CSPRNG, archiviato nel database unicamente tramite hash SHA-256 (nessun token o credenziale memorizzata in chiaro).
+    - Gestione dei timeout: timeout per inattività di 30 minuti (rinnovato ad ogni richiesta valida) e timeout assoluto improrogabile di 8 ore.
+    - Cookie di sessione `prolocal_session`: `HttpOnly: true`, `SameSite: 'lax'`, `Path: '/'`, `Max-Age: 28800` (8 ore), con attributo `secure: true` in ambiente di produzione.
+    - Protezione CSRF: header obbligatorio `X-Requested-With: ProLocalApp` su tutte le richieste mutative (`POST`, `PUT`, `PATCH`, `DELETE`) effettuate con cookie di sessione; restituisce `403 Forbidden` in caso di violazione.
+    - Rimozione Demo Auth: il precedente meccanismo transitorio basato su header (`X-Demo-Member-Id`, `X-Demo-Role`) è stato completamente rimosso dal runtime e dai contratti di servizio.
+  - **Persistenza & Migrazioni PostgreSQL:**
+    - Migrazioni transazionali DDL disponibili sia come file SQL fisici in `backend/src/db/migrations/` (`001_create_members.sql`, `002_create_business_activities.sql`, `003_create_audit_logs.sql`, `004_create_auth_tables.sql`) sia come stringhe nel runtime `migrator.ts`, con test automatizzato di coerenza semantica tra i due.
+    - Separazione ontologica tra Identità Autenticabile (`UserAccount`) e Membro (`Member`), garantita da vincolo CHECK a livello database: `TECHNICAL_ADMIN` ha `member_id IS NULL`, `MEMBER` ha `member_id` obbligatorio e univoco.
+  - **Servizio di Manutenzione Sessioni (`SessionCleanupService`):**
+    - Esecuzione periodica automatica ogni 60 minuti tramite invocazione di `sessionRepo.deleteExpired()`.
+    - Isolamento dei fallimenti (failure isolation): eventuali errori del database vengono registrati nel log senza arrestare il server HTTP né impedire i cicli successivi.
+    - Integrazione nel lifecycle di avvio del server e arresto pulito (graceful shutdown) su segnali di terminazione `SIGTERM` e `SIGINT`.
+  - **Frontend (`/frontend`):** React + TypeScript, interfaccia responsive e accessibile. Gestione autenticazione con `AuthContext` e hook `useAuth`, schermata di accesso protetta (`LoginView`), dashboard del socio (`MemberDashboardView`), gestione scheda attività (`ActivityEditView`), console separata per amministratore tecnico (`TechnicalAdminView`), client API configurato con `credentials: 'include'` e header CSRF automatico, gestione centralizzata della scadenza sessione (401), nota permanente di trasparenza (`LegalNotice`).
+  - **Test Suite Automatizzata:** 151 test verificati e superati (122 test Backend, 29 test Frontend, 0 falliti, 0 ignorati).
 - **Prototipo Android/Kotlin (Preservato):**
   - **Linguaggio:** Kotlin
   - **Interfaccia Utente:** Jetpack Compose (Material Design 3, Responsive Multi-Device: Smartphone, Tablet, Desktop)
