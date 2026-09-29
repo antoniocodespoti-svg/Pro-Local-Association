@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "tsc --noEmit",
-    "test": "esbuild tests/frontend_components.test.ts --bundle --platform=node --format=esm --packages=external --outfile=tests/dist_test.mjs --jsx=automatic && node --experimental-strip-types --test tests/dist_test.mjs tests/api_client.test.ts"
+    "test": "esbuild tests/frontend_components.test.ts --bundle --platform=node --format=esm --packages=external --outfile=tests/dist_test.mjs --jsx=automatic && esbuild tests/auth_integration.test.ts --bundle --platform=node --format=esm --packages=external --outfile=tests/dist_auth_test.mjs --jsx=automatic && node --experimental-strip-types --test tests/dist_test.mjs tests/dist_auth_test.mjs tests/api_client.test.ts"
   },
   "dependencies": {
     "react": "^18.3.1",

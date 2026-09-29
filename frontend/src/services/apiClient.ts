@@ -1,8 +1,10 @@
 import type { PublicActivity, MemberAreaResponse, UpdateActivityInput } from '../types/domain.ts';
+import { ApiError } from '../types/auth.ts';
+import type { LoginResponse, CurrentUserResponse } from '../types/auth.ts';
 
 export class ProLocalApiClient {
   private baseUrl: string;
-  private demoMemberId: string = 'socio-01';
+  private onUnauthorizedCallback?: () => void;
 
   constructor(customBaseUrl?: string) {
     this.baseUrl = customBaseUrl || this.resolveBaseUrl();
@@ -23,12 +25,95 @@ export class ProLocalApiClient {
     return this.baseUrl;
   }
 
-  public setDemoMemberId(memberId: string) {
-    this.demoMemberId = memberId;
+  public setOnUnauthorized(callback?: () => void) {
+    this.onUnauthorizedCallback = callback;
   }
 
-  public getDemoMemberId(): string {
-    return this.demoMemberId;
+  public notifyUnauthorized() {
+    if (this.onUnauthorizedCallback) {
+      this.onUnauthorizedCallback();
+    }
+  }
+
+  /**
+   * Autenticazione reale con credenziali HTTP.
+   * Il backend restituisce cookie HttpOnly 'prolocal_session'.
+   * Nessun token o password viene memorizzato lato client.
+   */
+  async login(email: string, password: string): Promise<LoginResponse> {
+    const res = await fetch(`${this.baseUrl}/api/auth/login`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'ProLocalApp'
+      },
+      body: JSON.stringify({ email, password })
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      if (res.status === 401) {
+        throw new ApiError('Credenziali non valide. Verificare email e password.', 401);
+      }
+      if (res.status === 423) {
+        throw new ApiError(
+          'Account temporaneamente bloccato per motivi di sicurezza dopo troppi tentativi falliti. Riprovare più tardi.',
+          423,
+          'ACCOUNT_LOCKED',
+          data
+        );
+      }
+      if (res.status === 400) {
+        throw new ApiError('I campi email e password sono obbligatori.', 400);
+      }
+      if (res.status === 403) {
+        throw new ApiError('Accesso negato: account non attivo.', 403);
+      }
+      throw new ApiError('Errore durante la procedura di accesso. Riprovare più tardi.', res.status);
+    }
+
+    return data;
+  }
+
+  /**
+   * Verifica la sessione attuale chiedendo al backend /api/auth/me tramite cookie HttpOnly.
+   * Il backend è l'unica autorità sull'identità.
+   */
+  async getCurrentUser(): Promise<CurrentUserResponse | null> {
+    const res = await fetch(`${this.baseUrl}/api/auth/me`, {
+      method: 'GET',
+      credentials: 'include'
+    });
+
+    if (res.status === 401) {
+      return null;
+    }
+
+    if (!res.ok) {
+      throw new ApiError(`Errore durante la verifica della sessione (${res.status})`, res.status);
+    }
+
+    return res.json();
+  }
+
+  /**
+   * Logout globale server-side.
+   * Revoca la sessione e ordina al browser la cancellazione del cookie HttpOnly.
+   */
+  async logout(): Promise<void> {
+    const res = await fetch(`${this.baseUrl}/api/auth/logout`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'X-Requested-With': 'ProLocalApp'
+      }
+    });
+
+    if (!res.ok && res.status !== 401) {
+      // Procediamo comunque: il backend ha comunque cancellato il cookie se possibile
+    }
   }
 
   /**
@@ -38,7 +123,7 @@ export class ProLocalApiClient {
   async getPublicShowcase(): Promise<PublicActivity[]> {
     const res = await fetch(`${this.baseUrl}/api/showcase`);
     if (!res.ok) {
-      throw new Error(`Errore durante il recupero della vetrina pubblica (${res.status})`);
+      throw new ApiError(`Errore durante il recupero della vetrina pubblica (${res.status})`, res.status);
     }
     return res.json();
   }
@@ -50,31 +135,39 @@ export class ProLocalApiClient {
     const res = await fetch(`${this.baseUrl}/api/activities/${encodeURIComponent(id)}`);
     if (!res.ok) {
       if (res.status === 404) {
-        throw new Error('Attività non trovata o non disponibile per la visualizzazione pubblica.');
+        throw new ApiError('Attività non trovata o non disponibile per la visualizzazione pubblica.', 404);
       }
-      throw new Error(`Errore durante il recupero dell'attività (${res.status})`);
+      throw new ApiError(`Errore durante il recupero dell'attività (${res.status})`, res.status);
     }
     return res.json();
   }
 
   /**
-   * Recupera i dati del socio demo e della sua attività collegata
+   * Recupera i dati del socio autenticato e della sua attività collegata.
+   * Usa esclusivamente la sessione reale tramite cookie HttpOnly.
    */
   async getMemberAreaMe(): Promise<MemberAreaResponse> {
     const res = await fetch(`${this.baseUrl}/api/members/me`, {
-      headers: {
-        'X-Demo-Member-Id': this.demoMemberId
-      }
+      credentials: 'include'
     });
-    if (!res.ok) {
-      throw new Error(`Errore durante il caricamento dell'area socio (${res.status})`);
+
+    if (res.status === 401) {
+      this.notifyUnauthorized();
+      throw new ApiError('Sessione non valida o scaduta. Effettuare nuovamente il login.', 401);
     }
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      const errorMsg = body.error || `Errore durante il caricamento dell'area socio (${res.status})`;
+      throw new ApiError(errorMsg, res.status);
+    }
+
     return res.json();
   }
 
   /**
-   * Aggiorna la scheda attività da parte del socio titolare
-   * La modifica riavvia il workflow impostando lo stato su IN_ATTESA_APPROVAZIONE
+   * Aggiorna la scheda attività da parte del socio titolare.
+   * Richiesta mutativa protetta da CSRF (X-Requested-With) e sessione HTTP reale.
    */
   async updateActivity(
     activityId: string,
@@ -82,18 +175,23 @@ export class ProLocalApiClient {
   ): Promise<{ messaggio: string; attivita: any }> {
     const res = await fetch(`${this.baseUrl}/api/activities/${encodeURIComponent(activityId)}`, {
       method: 'PUT',
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
-        'X-Demo-Member-Id': this.demoMemberId,
-        'X-Demo-Role': 'SOCIO'
+        'X-Requested-With': 'ProLocalApp'
       },
       body: JSON.stringify(data)
     });
 
-    const body = await res.json();
+    if (res.status === 401) {
+      this.notifyUnauthorized();
+      throw new ApiError('Sessione non valida o scaduta. Effettuare nuovamente il login.', 401);
+    }
+
+    const body = await res.json().catch(() => ({}));
     if (!res.ok) {
       const errorMsg = body.dettagli ? body.dettagli.join(', ') : body.error || 'Errore durante la modifica';
-      throw new Error(errorMsg);
+      throw new ApiError(errorMsg, res.status);
     }
 
     return body;

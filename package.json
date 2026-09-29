@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test:backend": "node --experimental-strip-types --test backend/tests/governance_security.test.ts backend/tests/api_http.test.ts backend/tests/postgres_repositories.test.ts backend/tests/auth_core.test.ts backend/tests/auth_service.test.ts",
+    "test:backend": "node --experimental-strip-types --test backend/tests/governance_security.test.ts backend/tests/api_http.test.ts backend/tests/postgres_repositories.test.ts backend/tests/auth_core.test.ts backend/tests/auth_service.test.ts backend/tests/auth_http.test.ts",
     "test:frontend": "npm test --prefix frontend",
     "typecheck:backend": "tsc -p backend/tsconfig.json --noEmit",
     "typecheck:frontend": "tsc -p frontend/tsconfig.json --noEmit",

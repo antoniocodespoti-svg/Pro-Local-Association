@@ -358,11 +358,10 @@ var MemberDashboardView = ({
   memberData,
   loading,
   error,
-  onEditActivity,
-  onSwitchDemoMember
+  onEditActivity
 }) => {
   if (loading) {
-    return /* @__PURE__ */ jsx5("div", { style: { padding: "40px", textAlign: "center", color: "#64748B" }, children: /* @__PURE__ */ jsx5("p", { children: "Caricamento area socio demo in corso..." }) });
+    return /* @__PURE__ */ jsx5("div", { style: { padding: "40px", textAlign: "center", color: "#64748B" }, children: /* @__PURE__ */ jsx5("p", { children: "Caricamento area socio in corso..." }) });
   }
   if (error || !memberData) {
     return /* @__PURE__ */ jsx5("div", { style: { maxWidth: "800px", margin: "30px auto", padding: "0 20px" }, children: /* @__PURE__ */ jsxs5(
@@ -382,93 +381,23 @@ var MemberDashboardView = ({
       }
     ) });
   }
-  const { socio, attivita, authMode, notaAutenticazione } = memberData;
+  const { socio, attivita } = memberData;
   return /* @__PURE__ */ jsxs5("div", { style: { maxWidth: "850px", margin: "30px auto", padding: "0 20px" }, children: [
     /* @__PURE__ */ jsxs5(
       "div",
       {
         style: {
-          backgroundColor: "#EFF6FF",
-          border: "1px solid #93C5FD",
+          backgroundColor: "#F0FDF4",
+          border: "1px solid #86EFAC",
           borderRadius: "8px",
           padding: "16px",
           marginBottom: "24px",
           fontSize: "13px",
-          color: "#1E40AF"
+          color: "#166534"
         },
         children: [
-          /* @__PURE__ */ jsxs5("strong", { children: [
-            "MODALIT\xC0 COLLAUDO: ",
-            authMode
-          ] }),
-          /* @__PURE__ */ jsx5("p", { style: { margin: "4px 0 8px 0", lineHeight: 1.4 }, children: notaAutenticazione }),
-          /* @__PURE__ */ jsxs5("div", { style: { display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }, children: [
-            /* @__PURE__ */ jsx5("span", { children: "Cambia utente demo:" }),
-            /* @__PURE__ */ jsx5(
-              "button",
-              {
-                onClick: () => onSwitchDemoMember("socio-01"),
-                style: {
-                  padding: "4px 8px",
-                  fontSize: "12px",
-                  cursor: "pointer",
-                  backgroundColor: socio.id === "socio-01" ? "#2563EB" : "#FFFFFF",
-                  color: socio.id === "socio-01" ? "#FFFFFF" : "#1E293B",
-                  border: "1px solid #CBD5E1",
-                  borderRadius: "4px"
-                },
-                children: "Socio 1 (Mario Rossi - Attivo)"
-              }
-            ),
-            /* @__PURE__ */ jsx5(
-              "button",
-              {
-                onClick: () => onSwitchDemoMember("socio-02"),
-                style: {
-                  padding: "4px 8px",
-                  fontSize: "12px",
-                  cursor: "pointer",
-                  backgroundColor: socio.id === "socio-02" ? "#2563EB" : "#FFFFFF",
-                  color: socio.id === "socio-02" ? "#FFFFFF" : "#1E293B",
-                  border: "1px solid #CBD5E1",
-                  borderRadius: "4px"
-                },
-                children: "Socio 2 (Elena Bianchi - Attivo)"
-              }
-            ),
-            /* @__PURE__ */ jsx5(
-              "button",
-              {
-                onClick: () => onSwitchDemoMember("socio-03"),
-                style: {
-                  padding: "4px 8px",
-                  fontSize: "12px",
-                  cursor: "pointer",
-                  backgroundColor: socio.id === "socio-03" ? "#2563EB" : "#FFFFFF",
-                  color: socio.id === "socio-03" ? "#FFFFFF" : "#1E293B",
-                  border: "1px solid #CBD5E1",
-                  borderRadius: "4px"
-                },
-                children: "Socio 3 (Giuseppe Verdi - Sospeso)"
-              }
-            ),
-            /* @__PURE__ */ jsx5(
-              "button",
-              {
-                onClick: () => onSwitchDemoMember("socio-04"),
-                style: {
-                  padding: "4px 8px",
-                  fontSize: "12px",
-                  cursor: "pointer",
-                  backgroundColor: socio.id === "socio-04" ? "#2563EB" : "#FFFFFF",
-                  color: socio.id === "socio-04" ? "#FFFFFF" : "#1E293B",
-                  border: "1px solid #CBD5E1",
-                  borderRadius: "4px"
-                },
-                children: "Socio 4 (Carla Neri - Escluso)"
-              }
-            )
-          ] })
+          /* @__PURE__ */ jsx5("strong", { children: "SESSIONE ASSOCIATIVA AUTENTICATA" }),
+          /* @__PURE__ */ jsx5("p", { style: { margin: "4px 0 0 0", lineHeight: 1.4 }, children: "Accesso effettuato tramite cookie di sessione HttpOnly verificato dal server. Identit\xE0 associativa certificata dagli archivi sociali." })
         ]
       }
     ),
@@ -611,8 +540,8 @@ describe("Pro-Local Frontend Components SSR Rendering Tests", () => {
     }
   };
   const sampleMemberData = {
-    authMode: "DEMO_FASE_2_2",
-    notaAutenticazione: "Modalit\xE0 di collaudo demo per la Fase 2.2",
+    authMode: "REAL_SESSION",
+    notaAutenticazione: "Sessione associativa autenticata",
     socio: {
       id: "socio-01",
       codiceSocio: "SOC-001",
@@ -699,23 +628,46 @@ describe("Pro-Local Frontend Components SSR Rendering Tests", () => {
     assert.strictEqual(html.includes("0984 123456"), true);
     assert.strictEqual(html.includes("Spazio informativo non vincolante"), true);
   });
-  it("MemberDashboardView renderizza profilo socio e stato attivit\xE0 in modalit\xE0 DEMO", () => {
+  it("MemberDashboardView renderizza profilo socio e stato attivit\xE0 in modalit\xE0 REAL_SESSION", () => {
+    const realMemberData = {
+      ...sampleMemberData,
+      authMode: "REAL_SESSION",
+      notaAutenticazione: "Autenticato tramite sessione HTTP sicura"
+    };
     const html = renderToStaticMarkup(
       React2.createElement(MemberDashboardView, {
-        memberData: sampleMemberData,
+        memberData: realMemberData,
         loading: false,
         error: null,
         onEditActivity: () => {
-        },
-        onSwitchDemoMember: () => {
         }
       })
     );
-    assert.strictEqual(html.includes("MODALIT\xC0 COLLAUDO: DEMO_FASE_2_2"), true);
+    assert.strictEqual(html.includes("SESSIONE ASSOCIATIVA AUTENTICATA"), true);
+    assert.strictEqual(html.includes("cookie di sessione HttpOnly"), true);
     assert.strictEqual(html.includes("Mario Rossi"), true);
     assert.strictEqual(html.includes("SOC-001"), true);
     assert.strictEqual(html.includes("ATTIVO"), true);
     assert.strictEqual(html.includes("Bottega Artigiana del Legno"), true);
     assert.strictEqual(html.includes("PUBBLICATA (Visibile in vetrina)"), true);
+  });
+  it("MemberDashboardView renderizza profilo socio e avviso quando il socio non ha attivit\xE0 associate", () => {
+    const memberWithoutActivity = {
+      ...sampleMemberData,
+      attivita: null,
+      tutteAttivita: []
+    };
+    const html = renderToStaticMarkup(
+      React2.createElement(MemberDashboardView, {
+        memberData: memberWithoutActivity,
+        loading: false,
+        error: null,
+        onEditActivity: () => {
+        }
+      })
+    );
+    assert.strictEqual(html.includes("SESSIONE ASSOCIATIVA AUTENTICATA"), true);
+    assert.strictEqual(html.includes("Mario Rossi"), true);
+    assert.strictEqual(html.includes("Nessuna scheda attivit\xE0 attualmente associata"), true);
   });
 });

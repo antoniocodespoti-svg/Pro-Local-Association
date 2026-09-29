@@ -6,20 +6,18 @@ interface MemberDashboardViewProps {
   loading: boolean;
   error: string | null;
   onEditActivity: () => void;
-  onSwitchDemoMember: (memberId: string) => void;
 }
 
 export const MemberDashboardView: React.FC<MemberDashboardViewProps> = ({
   memberData,
   loading,
   error,
-  onEditActivity,
-  onSwitchDemoMember
+  onEditActivity
 }) => {
   if (loading) {
     return (
       <div style={{ padding: '40px', textAlign: 'center', color: '#64748B' }}>
-        <p>Caricamento area socio demo in corso...</p>
+        <p>Caricamento area socio in corso...</p>
       </div>
     );
   }
@@ -43,83 +41,26 @@ export const MemberDashboardView: React.FC<MemberDashboardViewProps> = ({
     );
   }
 
-  const { socio, attivita, authMode, notaAutenticazione } = memberData;
+  const { socio, attivita } = memberData;
 
   return (
     <div style={{ maxWidth: '850px', margin: '30px auto', padding: '0 20px' }}>
-      {/* Banner Esplicito di Autenticazione Demo */}
+      {/* Banner di Autenticazione: Sessione Reale */}
       <div
         style={{
-          backgroundColor: '#EFF6FF',
-          border: '1px solid #93C5FD',
+          backgroundColor: '#F0FDF4',
+          border: '1px solid #86EFAC',
           borderRadius: '8px',
           padding: '16px',
           marginBottom: '24px',
           fontSize: '13px',
-          color: '#1E40AF'
+          color: '#166534'
         }}
       >
-        <strong>MODALITÀ COLLAUDO: {authMode}</strong>
-        <p style={{ margin: '4px 0 8px 0', lineHeight: 1.4 }}>{notaAutenticazione}</p>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          <span>Cambia utente demo:</span>
-          <button
-            onClick={() => onSwitchDemoMember('socio-01')}
-            style={{
-              padding: '4px 8px',
-              fontSize: '12px',
-              cursor: 'pointer',
-              backgroundColor: socio.id === 'socio-01' ? '#2563EB' : '#FFFFFF',
-              color: socio.id === 'socio-01' ? '#FFFFFF' : '#1E293B',
-              border: '1px solid #CBD5E1',
-              borderRadius: '4px'
-            }}
-          >
-            Socio 1 (Mario Rossi - Attivo)
-          </button>
-          <button
-            onClick={() => onSwitchDemoMember('socio-02')}
-            style={{
-              padding: '4px 8px',
-              fontSize: '12px',
-              cursor: 'pointer',
-              backgroundColor: socio.id === 'socio-02' ? '#2563EB' : '#FFFFFF',
-              color: socio.id === 'socio-02' ? '#FFFFFF' : '#1E293B',
-              border: '1px solid #CBD5E1',
-              borderRadius: '4px'
-            }}
-          >
-            Socio 2 (Elena Bianchi - Attivo)
-          </button>
-          <button
-            onClick={() => onSwitchDemoMember('socio-03')}
-            style={{
-              padding: '4px 8px',
-              fontSize: '12px',
-              cursor: 'pointer',
-              backgroundColor: socio.id === 'socio-03' ? '#2563EB' : '#FFFFFF',
-              color: socio.id === 'socio-03' ? '#FFFFFF' : '#1E293B',
-              border: '1px solid #CBD5E1',
-              borderRadius: '4px'
-            }}
-          >
-            Socio 3 (Giuseppe Verdi - Sospeso)
-          </button>
-          <button
-            onClick={() => onSwitchDemoMember('socio-04')}
-            style={{
-              padding: '4px 8px',
-              fontSize: '12px',
-              cursor: 'pointer',
-              backgroundColor: socio.id === 'socio-04' ? '#2563EB' : '#FFFFFF',
-              color: socio.id === 'socio-04' ? '#FFFFFF' : '#1E293B',
-              border: '1px solid #CBD5E1',
-              borderRadius: '4px'
-            }}
-          >
-            Socio 4 (Carla Neri - Escluso)
-          </button>
-        </div>
+        <strong>SESSIONE ASSOCIATIVA AUTENTICATA</strong>
+        <p style={{ margin: '4px 0 0 0', lineHeight: 1.4 }}>
+          Accesso effettuato tramite cookie di sessione HttpOnly verificato dal server. Identità associativa certificata dagli archivi sociali.
+        </p>
       </div>
 
       <h1 style={{ fontSize: '24px', color: '#0F172A', marginBottom: '6px' }}>Area Personale del Socio</h1>

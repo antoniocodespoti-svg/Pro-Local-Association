@@ -12,10 +12,19 @@ import {
 import type { Member, BusinessActivity } from '../../backend/src/domain/models.ts';
 import { InMemoryMemberRepository } from '../../backend/src/repositories/MemberRepository.ts';
 import { InMemoryBusinessActivityRepository } from '../../backend/src/repositories/BusinessActivityRepository.ts';
+import { InMemoryAuditLogRepository } from '../../backend/src/repositories/AuditLogRepository.ts';
+import { InMemoryUserAccountRepository } from '../../backend/src/repositories/UserAccountRepository.ts';
+import { InMemorySessionRepository } from '../../backend/src/repositories/SessionRepository.ts';
+import { ScryptPasswordHasher } from '../../backend/src/auth/PasswordHasher.ts';
+import { AuthService } from '../../backend/src/services/AuthService.ts';
+import { ActorType } from '../../backend/src/domain/auth.ts';
 
 describe('Pro-Local Frontend API Client Integration Tests', () => {
   let server: Server;
   let client: ProLocalApiClient;
+  const originalFetch = globalThis.fetch;
+  let sessionCookie: string | null = null;
+  const recordedHeaders: Record<string, string>[] = [];
 
   const testMembers: Member[] = [
     {
@@ -54,25 +63,81 @@ describe('Pro-Local Frontend API Client Integration Tests', () => {
     }
   ];
 
-  before((_, done) => {
+  before(async () => {
     const memberRepo = new InMemoryMemberRepository(testMembers);
     const activityRepo = new InMemoryBusinessActivityRepository(testActivities);
-    const app = createProLocalApp({ memberRepo, activityRepo });
+    const auditRepo = new InMemoryAuditLogRepository();
+    const userAccountRepo = new InMemoryUserAccountRepository();
+    const sessionRepo = new InMemorySessionRepository();
+    const passwordHasher = new ScryptPasswordHasher({ costN: 2048, blockSizeR: 8, parallelizationP: 1 });
 
-    server = app.listen(0, '127.0.0.1', () => {
-      const addr = server.address() as AddressInfo;
-      const baseUrl = `http://127.0.0.1:${addr.port}`;
-      // Inietta l'URL dell'API per il client di test
-      (globalThis as any).__PROLOCAL_API_URL__ = baseUrl;
-      if (typeof window === 'undefined') {
-        (globalThis as any).window = { __PROLOCAL_API_URL__: baseUrl };
-      }
-      client = new ProLocalApiClient(baseUrl);
-      done();
+    const passwordHash = await passwordHasher.hash('Password123!');
+    await userAccountRepo.create({
+      id: 'usr-01',
+      email: 'mario.rossi@demo.it',
+      passwordHash,
+      actorType: ActorType.MEMBER,
+      memberId: 'socio-01'
     });
+
+    const authService = new AuthService({
+      userAccountRepo,
+      sessionRepo,
+      memberRepo,
+      passwordHasher,
+      auditLogRepo: auditRepo
+    });
+
+    const app = createProLocalApp({
+      memberRepo,
+      activityRepo,
+      auditRepo,
+      userAccountRepo,
+      sessionRepo,
+      passwordHasher,
+      authService
+    });
+
+    await new Promise<void>((resolve) => {
+      server = app.listen(0, '127.0.0.1', () => {
+        const addr = server.address() as AddressInfo;
+        const baseUrl = `http://127.0.0.1:${addr.port}`;
+        // Inietta l'URL dell'API per il client di test
+        (globalThis as any).__PROLOCAL_API_URL__ = baseUrl;
+        if (typeof window === 'undefined') {
+          (globalThis as any).window = { __PROLOCAL_API_URL__: baseUrl };
+        }
+        client = new ProLocalApiClient(baseUrl);
+        resolve();
+      });
+    });
+
+    // Wrapper cookie-jar per Node.js fetch che mantiene sessione reale HttpOnly e traccia header
+    globalThis.fetch = async (input, init) => {
+      const headers = new Headers(init?.headers || {});
+      if (init?.credentials === 'include' && sessionCookie) {
+        headers.set('Cookie', sessionCookie);
+      }
+      const recorded: Record<string, string> = {};
+      headers.forEach((val, key) => {
+        recorded[key.toLowerCase()] = val;
+      });
+      recordedHeaders.push(recorded);
+
+      const response = await originalFetch(input, { ...init, headers });
+      const setCookie = response.headers.get('set-cookie');
+      if (setCookie) {
+        const match = setCookie.match(/prolocal_session=([^;]+)/);
+        if (match) {
+          sessionCookie = `prolocal_session=${match[1]}`;
+        }
+      }
+      return response;
+    };
   });
 
   after((_, done) => {
+    globalThis.fetch = originalFetch;
     if (server) {
       server.close(done);
     } else {
@@ -104,18 +169,20 @@ describe('Pro-Local Frontend API Client Integration Tests', () => {
     );
   });
 
-  it('client.getMemberAreaMe - recupera la dashboard del socio demo attuale', async () => {
-    client.setDemoMemberId('socio-01');
+  it('client.getMemberAreaMe - recupera la dashboard del socio autenticato con sessione reale (senza X-Demo-*)', async () => {
+    // Autenticazione HTTP reale (POST /api/auth/login)
+    const loginResult = await client.login('mario.rossi@demo.it', 'Password123!');
+    assert.strictEqual(loginResult.authenticated, true);
+
     const me = await client.getMemberAreaMe();
-    assert.strictEqual(me.authMode, 'DEMO_FASE_2_2');
+    assert.strictEqual(me.authMode, 'REAL_SESSION', 'authMode deve essere REAL_SESSION');
     assert.strictEqual(me.socio.nomeCognome, 'Mario Rossi');
     assert.strictEqual(me.socio.statoAssociativo, 'ATTIVO');
     assert(me.attivita, 'Deve contenere l\'attività del socio');
     assert.strictEqual(me.attivita.nomeAttivita, 'Bottega Restauro Tradizionale');
   });
 
-  it('client.updateActivity - invia modifiche della scheda e gestisce il cambio stato', async () => {
-    client.setDemoMemberId('socio-01');
+  it('client.updateActivity - invia modifiche con credentials: "include" e CSRF (X-Requested-With)', async () => {
     const result = await client.updateActivity('act-01', {
       nomeAttivita: 'Bottega Restauro e Doratura Tradizionale',
       descrizioneBreve: 'Restauro ligneo e doratura a foglia d\'oro zecchino',
@@ -127,10 +194,15 @@ describe('Pro-Local Frontend API Client Integration Tests', () => {
     assert(result.messaggio.includes('successo'));
     assert.strictEqual(result.attivita.nomeAttivita, 'Bottega Restauro e Doratura Tradizionale');
     assert.strictEqual(result.attivita.statoPubblicazione, 'IN_ATTESA_APPROVAZIONE');
+
+    // Verifica che l'ultima chiamata abbia inviato X-Requested-With e nessun X-Demo-*
+    const lastHeaders = recordedHeaders[recordedHeaders.length - 1];
+    assert.strictEqual(lastHeaders['x-requested-with'], 'ProLocalApp');
+    assert.strictEqual(lastHeaders['x-demo-member-id'], undefined);
+    assert.strictEqual(lastHeaders['x-demo-role'], undefined);
   });
 
   it('client.updateActivity - rifiuta aggiornamento con errore descrittivo se dati invalidi', async () => {
-    client.setDemoMemberId('socio-01');
     await assert.rejects(
       async () => {
         await client.updateActivity('act-01', {

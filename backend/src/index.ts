@@ -4,6 +4,8 @@ import { DatabaseMigrator } from './db/migrator.ts';
 import { PostgresMemberRepository } from './repositories/PostgresMemberRepository.ts';
 import { PostgresBusinessActivityRepository } from './repositories/PostgresBusinessActivityRepository.ts';
 import { PostgresAuditLogRepository } from './repositories/PostgresAuditLogRepository.ts';
+import { PostgresUserAccountRepository } from './repositories/PostgresUserAccountRepository.ts';
+import { PostgresSessionRepository } from './repositories/PostgresSessionRepository.ts';
 import { seedDemoData } from './db/seeds/demoSeed.ts';
 
 const PORT = process.env.PORT || 3001;
@@ -34,7 +36,9 @@ async function bootstrap() {
     customRepos = {
       memberRepo: new PostgresMemberRepository(pool),
       activityRepo: new PostgresBusinessActivityRepository(pool),
-      auditRepo: new PostgresAuditLogRepository(pool)
+      auditRepo: new PostgresAuditLogRepository(pool),
+      userAccountRepo: new PostgresUserAccountRepository(pool),
+      sessionRepo: new PostgresSessionRepository(pool)
     };
   }
 
@@ -43,7 +47,11 @@ async function bootstrap() {
   app.listen(PORT, () => {
     console.log(`[Pro-Local REST API] Server avviato su http://localhost:${PORT}`);
     console.log(`[Pro-Local REST API] Driver di persistenza attivo: ${DB_DRIVER.toUpperCase()}`);
+    console.log('[Pro-Local REST API] Autenticazione: Sessione HTTP reale basata su cookie HttpOnly');
     console.log('[Pro-Local REST API] Endpoints attivi:');
+    console.log(' - POST /api/auth/login');
+    console.log(' - POST /api/auth/logout');
+    console.log(' - GET /api/auth/me');
     console.log(' - GET /api/showcase');
     console.log(' - GET /api/activities/:id');
     console.log(' - GET /api/members/me');

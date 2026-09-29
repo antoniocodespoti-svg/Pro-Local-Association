@@ -13,11 +13,35 @@ import type { Member, BusinessActivity } from '../src/domain/models.ts';
 import { InMemoryMemberRepository } from '../src/repositories/MemberRepository.ts';
 import { InMemoryBusinessActivityRepository } from '../src/repositories/BusinessActivityRepository.ts';
 import { InMemoryAuditLogRepository } from '../src/repositories/AuditLogRepository.ts';
+import { InMemoryUserAccountRepository } from '../src/repositories/UserAccountRepository.ts';
+import { InMemorySessionRepository } from '../src/repositories/SessionRepository.ts';
+import { ScryptPasswordHasher } from '../src/auth/PasswordHasher.ts';
+import { AuthService } from '../src/services/AuthService.ts';
+import { ActorType } from '../src/domain/auth.ts';
 
 describe('Pro-Local REST API Integration & Security Tests', () => {
   let server: Server;
   let baseUrl: string;
   let auditRepo: InMemoryAuditLogRepository;
+  const TEST_PASSWORD = 'TestPassword123!';
+
+  // Helper per eseguire login HTTP reale ed estrarre il cookie prolocal_session
+  async function loginAndGetCookie(email: string, password = TEST_PASSWORD): Promise<string> {
+    const res = await fetch(`${baseUrl}/api/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'ProLocalApp'
+      },
+      body: JSON.stringify({ email, password })
+    });
+    assert.strictEqual(res.status, 200, `Login fallito per ${email}`);
+    const setCookie = res.headers.get('set-cookie');
+    assert(setCookie, 'Set-Cookie mancante nella risposta di login');
+    const match = setCookie.match(/prolocal_session=([^;]+)/);
+    assert(match, 'Cookie prolocal_session non trovato');
+    return `prolocal_session=${match[1]}`;
+  }
 
   // Dati di test controllati
   const testMembers: Member[] = [
@@ -157,16 +181,76 @@ describe('Pro-Local REST API Integration & Security Tests', () => {
     }
   ];
 
-  before((_, done) => {
+  before(async () => {
     const memberRepo = new InMemoryMemberRepository(testMembers);
     const activityRepo = new InMemoryBusinessActivityRepository(testActivities);
     auditRepo = new InMemoryAuditLogRepository();
-    const app = createProLocalApp({ memberRepo, activityRepo, auditRepo });
+    const userAccountRepo = new InMemoryUserAccountRepository();
+    const sessionRepo = new InMemorySessionRepository();
+    const passwordHasher = new ScryptPasswordHasher({ costN: 2048, blockSizeR: 8, parallelizationP: 1 });
 
-    server = app.listen(0, '127.0.0.1', () => {
-      const addr = server.address() as AddressInfo;
-      baseUrl = `http://127.0.0.1:${addr.port}`;
-      done();
+    const passwordHash = await passwordHasher.hash(TEST_PASSWORD);
+
+    // Account socio-A
+    await userAccountRepo.create({
+      id: 'usr-socio-a',
+      email: 'socio.a@test.demo',
+      passwordHash,
+      actorType: ActorType.MEMBER,
+      memberId: 'socio-A'
+    });
+
+    // Account socio-B
+    await userAccountRepo.create({
+      id: 'usr-socio-b',
+      email: 'socio.b@test.demo',
+      passwordHash,
+      actorType: ActorType.MEMBER,
+      memberId: 'socio-B'
+    });
+
+    // Account Amministratore Tecnico (senza affiliazione associativa)
+    await userAccountRepo.create({
+      id: 'usr-admin-tech',
+      email: 'admin.tech@test.demo',
+      passwordHash,
+      actorType: ActorType.TECHNICAL_ADMIN,
+      memberId: null
+    });
+
+    // Account fantasma (utente con memberId non presente in memberRepo)
+    await userAccountRepo.create({
+      id: 'usr-fantasma',
+      email: 'fantasma@test.demo',
+      passwordHash,
+      actorType: ActorType.MEMBER,
+      memberId: 'socio-fantasma-non-esistente'
+    });
+
+    const authService = new AuthService({
+      userAccountRepo,
+      sessionRepo,
+      memberRepo,
+      passwordHasher,
+      auditLogRepo: auditRepo
+    });
+
+    const app = createProLocalApp({
+      memberRepo,
+      activityRepo,
+      auditRepo,
+      userAccountRepo,
+      sessionRepo,
+      passwordHasher,
+      authService
+    });
+
+    await new Promise<void>((resolve) => {
+      server = app.listen(0, '127.0.0.1', () => {
+        const addr = server.address() as AddressInfo;
+        baseUrl = `http://127.0.0.1:${addr.port}`;
+        resolve();
+      });
     });
   });
 
@@ -260,19 +344,20 @@ describe('Pro-Local REST API Integration & Security Tests', () => {
   });
 
   // =========================================================================
-  // 3. GET /api/members/me (Area socio demo)
+  // 3. GET /api/members/me (Area socio autenticato con sessione reale)
   // =========================================================================
 
-  it('GET /api/members/me - restituisce i dati del socio demo e la sua attività collegata', async () => {
+  it('GET /api/members/me - restituisce i dati del socio autenticato e la sua attività collegata', async () => {
+    const cookieA = await loginAndGetCookie('socio.a@test.demo');
     const res = await fetch(`${baseUrl}/api/members/me`, {
       headers: {
-        'X-Demo-Member-Id': 'socio-A'
+        Cookie: cookieA
       }
     });
     assert.strictEqual(res.status, 200);
 
     const body = await res.json();
-    assert.strictEqual(body.authMode, 'DEMO_FASE_2_2');
+    assert.strictEqual(body.authMode, 'REAL_SESSION');
     assert.strictEqual(body.socio.id, 'socio-A');
     assert.strictEqual(body.socio.nomeCognome, 'Socio Alpha');
     assert.strictEqual(body.socio.statoAssociativo, MembershipStatus.ATTIVO);
@@ -280,13 +365,19 @@ describe('Pro-Local REST API Integration & Security Tests', () => {
     assert.strictEqual(body.attivita.memberId, 'socio-A');
   });
 
-  it('GET /api/members/me - restituisce 404 se il socio demo non esiste', async () => {
+  it('GET /api/members/me - restituisce 401 se il socio associato alla sessione non esiste negli archivi', async () => {
+    const cookieFantasma = await loginAndGetCookie('fantasma@test.demo');
     const res = await fetch(`${baseUrl}/api/members/me`, {
       headers: {
-        'X-Demo-Member-Id': 'socio-fantasma-non-esistente'
+        Cookie: cookieFantasma
       }
     });
-    assert.strictEqual(res.status, 404);
+    assert.strictEqual(res.status, 401);
+  });
+
+  it('GET /api/members/me - restituisce 401 se la richiesta non è autenticata', async () => {
+    const res = await fetch(`${baseUrl}/api/members/me`);
+    assert.strictEqual(res.status, 401);
   });
 
   // =========================================================================
@@ -294,6 +385,7 @@ describe('Pro-Local REST API Integration & Security Tests', () => {
   // =========================================================================
 
   it('PUT /api/activities/:id - Socio A modifica con successo la propria attività (Ownership)', async () => {
+    const cookieA = await loginAndGetCookie('socio.a@test.demo');
     const payload = {
       nomeAttivita: 'Bottega Artigiana A (Modificata)',
       descrizioneBreve: 'Nuova descrizione breve valida per il restauro',
@@ -306,8 +398,8 @@ describe('Pro-Local REST API Integration & Security Tests', () => {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'X-Demo-Member-Id': 'socio-A',
-        'X-Demo-Role': ProLocalRole.SOCIO
+        'X-Requested-With': 'ProLocalApp',
+        Cookie: cookieA
       },
       body: JSON.stringify(payload)
     });
@@ -324,6 +416,7 @@ describe('Pro-Local REST API Integration & Security Tests', () => {
   });
 
   it('PUT /api/activities/:id - Socio A tenta di modificare l\'attività di Socio B -> 403 FORBIDDEN', async () => {
+    const cookieA = await loginAndGetCookie('socio.a@test.demo');
     const payload = {
       nomeAttivita: 'Tentativo Illecito Socio A su B',
       descrizioneBreve: 'Descrizione breve valida di prova',
@@ -336,8 +429,8 @@ describe('Pro-Local REST API Integration & Security Tests', () => {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'X-Demo-Member-Id': 'socio-A', // Autenticato come A
-        'X-Demo-Role': ProLocalRole.SOCIO
+        'X-Requested-With': 'ProLocalApp',
+        Cookie: cookieA
       },
       body: JSON.stringify(payload)
     });
@@ -348,6 +441,7 @@ describe('Pro-Local REST API Integration & Security Tests', () => {
   });
 
   it('PUT /api/activities/:id - Amministratore Tecnico tenta di modificare l\'attività -> 403 FORBIDDEN', async () => {
+    const cookieAdmin = await loginAndGetCookie('admin.tech@test.demo');
     const payload = {
       nomeAttivita: 'Tentativo Modifica da Admin Tecnico',
       descrizioneBreve: 'Descrizione breve valida di prova',
@@ -360,8 +454,8 @@ describe('Pro-Local REST API Integration & Security Tests', () => {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'X-Demo-Member-Id': 'admin-tech-01',
-        'X-Demo-Role': ProLocalRole.AMMINISTRATORE_TECNICO
+        'X-Requested-With': 'ProLocalApp',
+        Cookie: cookieAdmin
       },
       body: JSON.stringify(payload)
     });
@@ -370,6 +464,7 @@ describe('Pro-Local REST API Integration & Security Tests', () => {
   });
 
   it('PUT /api/activities/:id - Input non valido restituisce 400 Bad Request', async () => {
+    const cookieA = await loginAndGetCookie('socio.a@test.demo');
     const invalidPayload = {
       nomeAttivita: '', // Vuoto -> non valido
       descrizioneBreve: 'Corta', // Meno di 10 caratteri -> non valido
@@ -381,8 +476,8 @@ describe('Pro-Local REST API Integration & Security Tests', () => {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'X-Demo-Member-Id': 'socio-A',
-        'X-Demo-Role': ProLocalRole.SOCIO
+        'X-Requested-With': 'ProLocalApp',
+        Cookie: cookieA
       },
       body: JSON.stringify(invalidPayload)
     });
@@ -394,6 +489,7 @@ describe('Pro-Local REST API Integration & Security Tests', () => {
   });
 
   it('PUT /api/activities/:id - Attività inesistente restituisce 404 Not Found', async () => {
+    const cookieA = await loginAndGetCookie('socio.a@test.demo');
     const payload = {
       nomeAttivita: 'Attività Non Esistente',
       descrizioneBreve: 'Descrizione breve valida di prova',
@@ -406,8 +502,8 @@ describe('Pro-Local REST API Integration & Security Tests', () => {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'X-Demo-Member-Id': 'socio-A',
-        'X-Demo-Role': ProLocalRole.SOCIO
+        'X-Requested-With': 'ProLocalApp',
+        Cookie: cookieA
       },
       body: JSON.stringify(payload)
     });
@@ -420,8 +516,9 @@ describe('Pro-Local REST API Integration & Security Tests', () => {
   // =========================================================================
   it('PUT /api/activities/:id - operazione autorizzata genera un record in audit_logs', async () => {
     const initialLogs = await auditRepo.findAll();
-    const countBefore = initialLogs.length;
+    const countBefore = initialLogs.filter((l) => l.action === 'MODIFICA_ATTIVITA').length;
 
+    const cookieA = await loginAndGetCookie('socio.a@test.demo');
     const payload = {
       nomeAttivita: 'Attività Aggiornata con Audit',
       descrizioneBreve: 'Descrizione valida per test audit',
@@ -434,8 +531,8 @@ describe('Pro-Local REST API Integration & Security Tests', () => {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'X-Demo-Member-Id': 'socio-A',
-        'X-Demo-Role': ProLocalRole.SOCIO
+        'X-Requested-With': 'ProLocalApp',
+        Cookie: cookieA
       },
       body: JSON.stringify(payload)
     });
@@ -443,9 +540,10 @@ describe('Pro-Local REST API Integration & Security Tests', () => {
     assert.strictEqual(res.status, 200);
 
     const allLogs = await auditRepo.findAll();
-    assert.strictEqual(allLogs.length, countBefore + 1, 'Deve essere stato aggiunto un solo record di audit');
+    const modifyLogs = allLogs.filter((l) => l.action === 'MODIFICA_ATTIVITA');
+    assert.strictEqual(modifyLogs.length, countBefore + 1, 'Deve essere stato aggiunto un solo record di audit per MODIFICA_ATTIVITA');
 
-    const latest = allLogs[allLogs.length - 1];
+    const latest = modifyLogs[modifyLogs.length - 1];
     assert.strictEqual(latest.actorId, 'socio-A', 'actorId deve corrispondere al socio autenticato');
     assert.strictEqual(latest.resourceId, 'act-pubblica-A', 'resourceId deve corrispondere all attività modificata');
     assert.strictEqual(latest.resourceType, 'BUSINESS_ACTIVITY');
@@ -457,15 +555,18 @@ describe('Pro-Local REST API Integration & Security Tests', () => {
 
   it('PUT /api/activities/:id - richiesta non autorizzata o respinta NON genera record in audit_logs', async () => {
     const logsBefore = await auditRepo.findAll();
-    const countBefore = logsBefore.length;
+    const countBefore = logsBefore.filter((l) => l.action === 'MODIFICA_ATTIVITA').length;
+
+    const cookieAdmin = await loginAndGetCookie('admin.tech@test.demo');
+    const cookieB = await loginAndGetCookie('socio.b@test.demo');
 
     // Tentativo dell'Amministratore Tecnico (bloccato da RBAC / Governance)
     const resTech = await fetch(`${baseUrl}/api/activities/act-pubblica-A`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'X-Demo-Member-Id': 'admin-tecnico-01',
-        'X-Demo-Role': ProLocalRole.AMMINISTRATORE_TECNICO
+        'X-Requested-With': 'ProLocalApp',
+        Cookie: cookieAdmin
       },
       body: JSON.stringify({
         nomeAttivita: 'Tentativo Forzato Admin Tecnico',
@@ -482,8 +583,8 @@ describe('Pro-Local REST API Integration & Security Tests', () => {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'X-Demo-Member-Id': 'socio-B',
-        'X-Demo-Role': ProLocalRole.SOCIO
+        'X-Requested-With': 'ProLocalApp',
+        Cookie: cookieB
       },
       body: JSON.stringify({
         nomeAttivita: 'Tentativo Dirottamento Scheda',
@@ -496,6 +597,7 @@ describe('Pro-Local REST API Integration & Security Tests', () => {
     assert.strictEqual(resOwnership.status, 403);
 
     const logsAfter = await auditRepo.findAll();
-    assert.strictEqual(logsAfter.length, countBefore, 'Nessun audit di modifica effettuata deve essere generato per tentativi respinti');
+    const countAfter = logsAfter.filter((l) => l.action === 'MODIFICA_ATTIVITA').length;
+    assert.strictEqual(countAfter, countBefore, 'Nessun audit di modifica effettuata deve essere generato per tentativi respinti');
   });
 });

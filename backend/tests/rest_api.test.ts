@@ -11,6 +11,12 @@ import {
 import type { Member, BusinessActivity } from '../src/domain/models.ts';
 import { InMemoryMemberRepository } from '../src/repositories/MemberRepository.ts';
 import { InMemoryBusinessActivityRepository } from '../src/repositories/BusinessActivityRepository.ts';
+import { InMemoryAuditLogRepository } from '../src/repositories/AuditLogRepository.ts';
+import { InMemoryUserAccountRepository } from '../src/repositories/UserAccountRepository.ts';
+import { InMemorySessionRepository } from '../src/repositories/SessionRepository.ts';
+import { ScryptPasswordHasher } from '../src/auth/PasswordHasher.ts';
+import { AuthService } from '../src/services/AuthService.ts';
+import { ActorType } from '../src/domain/auth.ts';
 
 // Helper di richiesta HTTP reale contro server in ascolto su porta effimera
 function makeRequest(
@@ -19,7 +25,7 @@ function makeRequest(
   path: string,
   headers: Record<string, string> = {},
   body?: any
-): Promise<{ status: number; body: any }> {
+): Promise<{ status: number; body: any; headers: http.IncomingHttpHeaders }> {
   const address = server.address() as any;
   const port = address.port;
 
@@ -53,7 +59,7 @@ function makeRequest(
           } catch {
             parsed = rawData;
           }
-          resolve({ status: res.statusCode || 500, body: parsed });
+          resolve({ status: res.statusCode || 500, body: parsed, headers: res.headers });
         });
       }
     );
@@ -169,10 +175,62 @@ describe('Pro-Local Phase 2.2 REST API & Security Tests', () => {
     }
   ];
 
-  function startTestServer(): Promise<{ server: http.Server; close: () => Promise<void> }> {
+  const TEST_PASSWORD = 'TestPassword123!';
+
+  async function startTestServer(): Promise<{ server: http.Server; close: () => Promise<void> }> {
     const memberRepo = new InMemoryMemberRepository(members);
     const activityRepo = new InMemoryBusinessActivityRepository(activities);
-    const app = createProLocalApp({ memberRepo, activityRepo });
+    const auditRepo = new InMemoryAuditLogRepository();
+    const userAccountRepo = new InMemoryUserAccountRepository();
+    const sessionRepo = new InMemorySessionRepository();
+    const passwordHasher = new ScryptPasswordHasher({ costN: 2048, blockSizeR: 8, parallelizationP: 1 });
+
+    const passwordHash = await passwordHasher.hash(TEST_PASSWORD);
+
+    // Account socio-A (Mario Rossi)
+    await userAccountRepo.create({
+      id: 'usr-a',
+      email: 'mario@demo.it',
+      passwordHash,
+      actorType: ActorType.MEMBER,
+      memberId: 'socio-A'
+    });
+
+    // Account socio-B (Elena Bianchi)
+    await userAccountRepo.create({
+      id: 'usr-b',
+      email: 'elena@demo.it',
+      passwordHash,
+      actorType: ActorType.MEMBER,
+      memberId: 'socio-B'
+    });
+
+    // Account admin tecnico
+    await userAccountRepo.create({
+      id: 'usr-admin',
+      email: 'admin.tech@prolocal.test',
+      passwordHash,
+      actorType: ActorType.TECHNICAL_ADMIN,
+      memberId: null
+    });
+
+    const authService = new AuthService({
+      userAccountRepo,
+      sessionRepo,
+      memberRepo,
+      passwordHasher,
+      auditLogRepo: auditRepo
+    });
+
+    const app = createProLocalApp({
+      memberRepo,
+      activityRepo,
+      auditRepo,
+      userAccountRepo,
+      sessionRepo,
+      passwordHasher,
+      authService
+    });
     const server = http.createServer(app);
 
     return new Promise((resolve) => {
@@ -183,6 +241,30 @@ describe('Pro-Local Phase 2.2 REST API & Security Tests', () => {
         });
       });
     });
+  }
+
+  async function loginAndGetCookie(
+    server: http.Server,
+    email: string,
+    password = TEST_PASSWORD
+  ): Promise<string> {
+    const res = await makeRequest(
+      server,
+      'POST',
+      '/api/auth/login',
+      {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'ProLocalApp'
+      },
+      { email, password }
+    );
+    assert.strictEqual(res.status, 200, `Login fallito per ${email}`);
+    const setCookie = res.headers['set-cookie'];
+    const cookieStr = Array.isArray(setCookie) ? setCookie[0] : setCookie;
+    assert(cookieStr, 'Set-Cookie non trovato');
+    const match = cookieStr.match(/prolocal_session=([^;]+)/);
+    assert(match, 'prolocal_session non trovato');
+    return `prolocal_session=${match[1]}`;
   }
 
   // =========================================================================
@@ -244,17 +326,18 @@ describe('Pro-Local Phase 2.2 REST API & Security Tests', () => {
   });
 
   // =========================================================================
-  // 3. GET /api/members/me: Area Socio Demo
+  // 3. GET /api/members/me: Area Socio Autenticato
   // =========================================================================
-  it('GET /api/members/me restituisce il profilo socio demo e l\'attività collegata', async () => {
+  it('GET /api/members/me restituisce il profilo socio autenticato e l\'attività collegata', async () => {
     const { server, close } = await startTestServer();
     try {
+      const cookieA = await loginAndGetCookie(server, 'mario@demo.it');
       const res = await makeRequest(server, 'GET', '/api/members/me', {
-        'X-Demo-Member-Id': 'socio-A'
+        Cookie: cookieA
       });
 
       assert.strictEqual(res.status, 200);
-      assert.strictEqual(res.body.authMode, 'DEMO_FASE_2_2');
+      assert.strictEqual(res.body.authMode, 'REAL_SESSION');
       assert.strictEqual(res.body.socio.id, 'socio-A');
       assert.strictEqual(res.body.attivita.id, 'act-A');
     } finally {
@@ -268,6 +351,7 @@ describe('Pro-Local Phase 2.2 REST API & Security Tests', () => {
   it('Socio A può modificare con successo la propria attività A', async () => {
     const { server, close } = await startTestServer();
     try {
+      const cookieA = await loginAndGetCookie(server, 'mario@demo.it');
       const validPayload = {
         nomeAttivita: 'Bottega Artigiana A (Rinnovata)',
         descrizioneBreve: 'Restauro artistico mobili antichi di pregio',
@@ -281,8 +365,8 @@ describe('Pro-Local Phase 2.2 REST API & Security Tests', () => {
         'PUT',
         '/api/activities/act-A',
         {
-          'X-Demo-Member-Id': 'socio-A',
-          'X-Demo-Role': ProLocalRole.SOCIO
+          Cookie: cookieA,
+          'X-Requested-With': 'ProLocalApp'
         },
         validPayload
       );
@@ -299,6 +383,7 @@ describe('Pro-Local Phase 2.2 REST API & Security Tests', () => {
   it('Socio A NON può modificare l\'attività B di Socio B (403 Forbidden)', async () => {
     const { server, close } = await startTestServer();
     try {
+      const cookieA = await loginAndGetCookie(server, 'mario@demo.it');
       const payload = {
         nomeAttivita: 'Tentativo Manomissione',
         descrizioneBreve: 'Descrizione non autorizzata dal socio A',
@@ -312,8 +397,8 @@ describe('Pro-Local Phase 2.2 REST API & Security Tests', () => {
         'PUT',
         '/api/activities/act-B',
         {
-          'X-Demo-Member-Id': 'socio-A',
-          'X-Demo-Role': ProLocalRole.SOCIO
+          Cookie: cookieA,
+          'X-Requested-With': 'ProLocalApp'
         },
         payload
       );
@@ -328,6 +413,7 @@ describe('Pro-Local Phase 2.2 REST API & Security Tests', () => {
   it('Amministratore Tecnico NON può modificare l\'attività dei soci (403 Forbidden)', async () => {
     const { server, close } = await startTestServer();
     try {
+      const cookieAdmin = await loginAndGetCookie(server, 'admin.tech@prolocal.test');
       const payload = {
         nomeAttivita: 'Modifica da Admin Tecnico',
         descrizioneBreve: 'Descrizione inserita da personale tecnico',
@@ -341,8 +427,8 @@ describe('Pro-Local Phase 2.2 REST API & Security Tests', () => {
         'PUT',
         '/api/activities/act-A',
         {
-          'X-Demo-Member-Id': 'admin-tecnico-01',
-          'X-Demo-Role': ProLocalRole.AMMINISTRATORE_TECNICO
+          Cookie: cookieAdmin,
+          'X-Requested-With': 'ProLocalApp'
         },
         payload
       );
@@ -357,6 +443,7 @@ describe('Pro-Local Phase 2.2 REST API & Security Tests', () => {
   it('PUT /api/activities/:id rifiuta payload con campi non validi (400 Bad Request)', async () => {
     const { server, close } = await startTestServer();
     try {
+      const cookieA = await loginAndGetCookie(server, 'mario@demo.it');
       const invalidPayload = {
         nomeAttivita: '', // Nome vuoto non valido
         descrizioneBreve: 'corta', // Meno di 10 caratteri
@@ -368,8 +455,8 @@ describe('Pro-Local Phase 2.2 REST API & Security Tests', () => {
         'PUT',
         '/api/activities/act-A',
         {
-          'X-Demo-Member-Id': 'socio-A',
-          'X-Demo-Role': ProLocalRole.SOCIO
+          Cookie: cookieA,
+          'X-Requested-With': 'ProLocalApp'
         },
         invalidPayload
       );
@@ -385,6 +472,7 @@ describe('Pro-Local Phase 2.2 REST API & Security Tests', () => {
   it('PUT /api/activities/:id restituisce 404 se l\'attività non esiste', async () => {
     const { server, close } = await startTestServer();
     try {
+      const cookieA = await loginAndGetCookie(server, 'mario@demo.it');
       const validPayload = {
         nomeAttivita: 'Nome Valido Attività',
         descrizioneBreve: 'Descrizione valida sufficientemente lunga',
@@ -398,8 +486,8 @@ describe('Pro-Local Phase 2.2 REST API & Security Tests', () => {
         'PUT',
         '/api/activities/act-non-esistente',
         {
-          'X-Demo-Member-Id': 'socio-A',
-          'X-Demo-Role': ProLocalRole.SOCIO
+          Cookie: cookieA,
+          'X-Requested-With': 'ProLocalApp'
         },
         validPayload
       );

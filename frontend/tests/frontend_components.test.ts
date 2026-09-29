@@ -30,8 +30,8 @@ describe('Pro-Local Frontend Components SSR Rendering Tests', () => {
   };
 
   const sampleMemberData: MemberAreaResponse = {
-    authMode: 'DEMO_FASE_2_2',
-    notaAutenticazione: 'Modalità di collaudo demo per la Fase 2.2',
+    authMode: 'REAL_SESSION',
+    notaAutenticazione: 'Sessione associativa autenticata',
     socio: {
       id: 'socio-01',
       codiceSocio: 'SOC-001',
@@ -126,21 +126,45 @@ describe('Pro-Local Frontend Components SSR Rendering Tests', () => {
     assert.strictEqual(html.includes('Spazio informativo non vincolante'), true);
   });
 
-  it('MemberDashboardView renderizza profilo socio e stato attività in modalità DEMO', () => {
+  it('MemberDashboardView renderizza profilo socio e stato attività in modalità REAL_SESSION', () => {
+    const realMemberData: MemberAreaResponse = {
+      ...sampleMemberData,
+      authMode: 'REAL_SESSION',
+      notaAutenticazione: 'Autenticato tramite sessione HTTP sicura'
+    };
     const html = renderToStaticMarkup(
       React.createElement(MemberDashboardView, {
-        memberData: sampleMemberData,
+        memberData: realMemberData,
         loading: false,
         error: null,
-        onEditActivity: () => {},
-        onSwitchDemoMember: () => {}
+        onEditActivity: () => {}
       })
     );
-    assert.strictEqual(html.includes('MODALITÀ COLLAUDO: DEMO_FASE_2_2'), true);
+    assert.strictEqual(html.includes('SESSIONE ASSOCIATIVA AUTENTICATA'), true);
+    assert.strictEqual(html.includes('cookie di sessione HttpOnly'), true);
     assert.strictEqual(html.includes('Mario Rossi'), true);
     assert.strictEqual(html.includes('SOC-001'), true);
     assert.strictEqual(html.includes('ATTIVO'), true);
     assert.strictEqual(html.includes('Bottega Artigiana del Legno'), true);
     assert.strictEqual(html.includes('PUBBLICATA (Visibile in vetrina)'), true);
+  });
+
+  it('MemberDashboardView renderizza profilo socio e avviso quando il socio non ha attività associate', () => {
+    const memberWithoutActivity: MemberAreaResponse = {
+      ...sampleMemberData,
+      attivita: null,
+      tutteAttivita: []
+    };
+    const html = renderToStaticMarkup(
+      React.createElement(MemberDashboardView, {
+        memberData: memberWithoutActivity,
+        loading: false,
+        error: null,
+        onEditActivity: () => {}
+      })
+    );
+    assert.strictEqual(html.includes('SESSIONE ASSOCIATIVA AUTENTICATA'), true);
+    assert.strictEqual(html.includes('Mario Rossi'), true);
+    assert.strictEqual(html.includes('Nessuna scheda attività attualmente associata'), true);
   });
 });

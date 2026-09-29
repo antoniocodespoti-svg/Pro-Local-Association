@@ -1,13 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import type { PublicActivity, MemberAreaResponse, UpdateActivityInput } from './types/domain.ts';
 import { apiClient } from './services/apiClient.ts';
+import { AuthProvider, useAuth } from './context/AuthContext.tsx';
 import { ShowcaseView } from './components/ShowcaseView.tsx';
 import { ActivityDetailView } from './components/ActivityDetailView.tsx';
 import { MemberDashboardView } from './components/MemberDashboardView.tsx';
 import { ActivityEditView } from './components/ActivityEditView.tsx';
+import { LoginView } from './components/LoginView.tsx';
+import { TechnicalAdminView } from './components/TechnicalAdminView.tsx';
 
-// Semplice router web a percorsi browser compatibile (/, /attivita/:id, /socio, /socio/attivita)
-export const App: React.FC = () => {
+// Componente principale che consuma AuthContext
+export const AppContent: React.FC = () => {
+  const { status, user, logout } = useAuth();
+
   const [currentPath, setCurrentPath] = useState<string>(() => {
     if (typeof window !== 'undefined') {
       return window.location.pathname || '/';
@@ -47,6 +52,15 @@ export const App: React.FC = () => {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
+  // Controllo rotte protette e session expiration
+  useEffect(() => {
+    if (status === 'UNAUTHENTICATED') {
+      if (currentPath === '/socio' || currentPath === '/socio/attivita') {
+        navigate('/login');
+      }
+    }
+  }, [status, currentPath]);
+
   // Caricamento vetrina pubblica
   const loadShowcase = async () => {
     setShowcaseLoading(true);
@@ -80,8 +94,11 @@ export const App: React.FC = () => {
     }
   };
 
-  // Caricamento area socio
+  // Caricamento dati socio reale dal server
   const loadMemberArea = async () => {
+    if (status !== 'AUTHENTICATED_MEMBER') {
+      return;
+    }
     setMemberLoading(true);
     setMemberError(null);
     try {
@@ -94,8 +111,12 @@ export const App: React.FC = () => {
     }
   };
 
-  // Trigger iniziale ed effetti al cambio di path
+  // Trigger caricamento dati al cambio di percorso o stato
   useEffect(() => {
+    if (status === 'INITIALIZING') {
+      return;
+    }
+
     if (currentPath === '/') {
       loadShowcase();
     } else if (currentPath.startsWith('/attivita/')) {
@@ -104,11 +125,13 @@ export const App: React.FC = () => {
         loadActivityDetail(id);
       }
     } else if (currentPath === '/socio' || currentPath === '/socio/attivita') {
-      loadMemberArea();
+      if (status === 'AUTHENTICATED_MEMBER') {
+        loadMemberArea();
+      }
     }
-  }, [currentPath]);
+  }, [currentPath, status]);
 
-  // Gestione salvataggio modifiche attività
+  // Gestione salvataggio modifiche attività (PUT protetta con sessione e CSRF)
   const handleSaveActivity = async (activityId: string, payload: UpdateActivityInput) => {
     setFeedbackSuccess(null);
     await apiClient.updateActivity(activityId, payload);
@@ -119,11 +142,11 @@ export const App: React.FC = () => {
     navigate('/socio');
   };
 
-  // Switch utente demo
-  const handleSwitchDemoMember = async (memberId: string) => {
-    apiClient.setDemoMemberId(memberId);
-    setFeedbackSuccess(null);
-    await loadMemberArea();
+  // Gestione logout
+  const handleLogout = async () => {
+    await logout();
+    setMemberData(null);
+    navigate('/login');
   };
 
   return (
@@ -149,7 +172,10 @@ export const App: React.FC = () => {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-0.02em' }}>
+            <span
+              onClick={() => navigate('/')}
+              style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-0.02em', cursor: 'pointer' }}
+            >
               PRO-LOCAL
             </span>
             <span
@@ -161,11 +187,11 @@ export const App: React.FC = () => {
                 borderRadius: '4px'
               }}
             >
-              Fase 2.2 Web Beta
+              Associazione Territoriale
             </span>
           </div>
 
-          <nav style={{ display: 'flex', gap: '12px' }}>
+          <nav style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <button
               onClick={() => navigate('/')}
               style={{
@@ -180,26 +206,97 @@ export const App: React.FC = () => {
             >
               Vetrina Pubblica
             </button>
-            <button
-              onClick={() => navigate('/socio')}
-              style={{
-                backgroundColor: currentPath.startsWith('/socio') ? '#2563EB' : 'transparent',
-                color: '#FFFFFF',
-                border: '1px solid #3B82F6',
-                padding: '8px 14px',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: 500
-              }}
-            >
-              Area Socio (Demo)
-            </button>
+
+            {status === 'UNAUTHENTICATED' && (
+              <button
+                onClick={() => navigate('/login')}
+                style={{
+                  backgroundColor: currentPath === '/login' ? '#2563EB' : 'transparent',
+                  color: '#FFFFFF',
+                  border: '1px solid #3B82F6',
+                  padding: '8px 16px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 500
+                }}
+              >
+                Accedi
+              </button>
+            )}
+
+            {status === 'AUTHENTICATED_MEMBER' && (
+              <>
+                <button
+                  onClick={() => navigate('/socio')}
+                  style={{
+                    backgroundColor: currentPath.startsWith('/socio') ? '#2563EB' : 'transparent',
+                    color: '#FFFFFF',
+                    border: '1px solid #3B82F6',
+                    padding: '8px 14px',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: 500
+                  }}
+                >
+                  Area Socio
+                </button>
+                <button
+                  onClick={handleLogout}
+                  style={{
+                    backgroundColor: 'transparent',
+                    color: '#94A3B8',
+                    border: '1px solid #334155',
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '13px'
+                  }}
+                >
+                  Esci
+                </button>
+              </>
+            )}
+
+            {status === 'AUTHENTICATED_TECHNICAL_ADMIN' && (
+              <>
+                <button
+                  onClick={() => navigate('/socio')}
+                  style={{
+                    backgroundColor: '#334155',
+                    color: '#38BDF8',
+                    border: '1px solid #0EA5E9',
+                    padding: '8px 14px',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                    fontWeight: 600
+                  }}
+                >
+                  Pannello Tecnico
+                </button>
+                <button
+                  onClick={handleLogout}
+                  style={{
+                    backgroundColor: 'transparent',
+                    color: '#EF4444',
+                    border: '1px solid #991B1B',
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '13px'
+                  }}
+                >
+                  Esci
+                </button>
+              </>
+            )}
           </nav>
         </div>
       </header>
 
-      {/* Messaggio Notifica di Successo Globale */}
+      {/* Notifica di Successo Globale */}
       {feedbackSuccess && (
         <div
           style={{
@@ -226,48 +323,101 @@ export const App: React.FC = () => {
         </div>
       )}
 
-      {/* Main Content Rendered in base alla route */}
+      {/* Main Content Rendered in base alla route e allo stato di autenticazione */}
       <main style={{ flex: 1, paddingBottom: '40px' }}>
-        {currentPath === '/' && (
-          <ShowcaseView
-            activities={activities}
-            loading={showcaseLoading}
-            error={showcaseError}
-            onSelectActivity={(act) => navigate(`/attivita/${act.id}`)}
-          />
-        )}
+        {status === 'INITIALIZING' ? (
+          <div style={{ textAlign: 'center', padding: '60px 20px', color: '#64748B' }}>
+            <p style={{ fontSize: '15px' }}>Verifica sessione in corso...</p>
+          </div>
+        ) : (
+          <>
+            {currentPath === '/' && (
+              <ShowcaseView
+                activities={activities}
+                loading={showcaseLoading}
+                error={showcaseError}
+                onSelectActivity={(act) => navigate(`/attivita/${act.id}`)}
+              />
+            )}
 
-        {currentPath.startsWith('/attivita/') && (
-          <ActivityDetailView
-            activity={selectedActivity}
-            loading={detailLoading}
-            error={detailError}
-            onBack={() => navigate('/')}
-          />
-        )}
+            {currentPath.startsWith('/attivita/') && (
+              <ActivityDetailView
+                activity={selectedActivity}
+                loading={detailLoading}
+                error={detailError}
+                onBack={() => navigate('/')}
+              />
+            )}
 
-        {currentPath === '/socio' && (
-          <MemberDashboardView
-            memberData={memberData}
-            loading={memberLoading}
-            error={memberError}
-            onEditActivity={() => navigate('/socio/attivita')}
-            onSwitchDemoMember={handleSwitchDemoMember}
-          />
-        )}
+            {currentPath === '/login' && (
+              <LoginView
+                onSuccess={(actorType) => {
+                  if (actorType === 'TECHNICAL_ADMIN') {
+                    navigate('/socio');
+                  } else {
+                    navigate('/socio');
+                  }
+                }}
+                onCancel={() => navigate('/')}
+              />
+            )}
 
-        {currentPath === '/socio/attivita' && (
-          memberData ? (
-            <ActivityEditView
-              memberData={memberData}
-              onSave={handleSaveActivity}
-              onCancel={() => navigate('/socio')}
-            />
-          ) : (
-            <div style={{ textAlign: 'center', padding: '40px' }}>
-              <p>Caricamento dati socio in corso...</p>
-            </div>
-          )
+            {currentPath === '/socio' && (
+              status === 'AUTHENTICATED_TECHNICAL_ADMIN' ? (
+                <TechnicalAdminView
+                  user={user!}
+                  onLogout={handleLogout}
+                  onGoHome={() => navigate('/')}
+                />
+              ) : status === 'AUTHENTICATED_MEMBER' ? (
+                <MemberDashboardView
+                  memberData={memberData}
+                  loading={memberLoading}
+                  error={memberError}
+                  onEditActivity={() => navigate('/socio/attivita')}
+                />
+              ) : (
+                <div style={{ textAlign: 'center', padding: '40px' }}>
+                  <p>Reindirizzamento all'accesso in corso...</p>
+                </div>
+              )
+            )}
+
+            {currentPath === '/socio/attivita' && (
+              status === 'AUTHENTICATED_TECHNICAL_ADMIN' ? (
+                <div style={{ maxWidth: '700px', margin: '40px auto', padding: '0 20px' }}>
+                  <div style={{ padding: '20px', backgroundColor: '#FEF2F2', border: '1px solid #F87171', borderRadius: '8px', color: '#991B1B' }}>
+                    <h3 style={{ margin: '0 0 8px 0' }}>Accesso Non Consentito</h3>
+                    <p style={{ margin: '0 0 12px 0' }}>
+                      L'Amministratore Tecnico non possiede una scheda socio né attività commerciali da modificare.
+                    </p>
+                    <button
+                      onClick={() => navigate('/socio')}
+                      style={{ padding: '6px 12px', backgroundColor: '#1E293B', color: '#FFFFFF', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                    >
+                      Torna al Pannello Tecnico
+                    </button>
+                  </div>
+                </div>
+              ) : status === 'AUTHENTICATED_MEMBER' ? (
+                memberData ? (
+                  <ActivityEditView
+                    memberData={memberData}
+                    onSave={handleSaveActivity}
+                    onCancel={() => navigate('/socio')}
+                  />
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '40px' }}>
+                    <p>Caricamento dati socio in corso...</p>
+                  </div>
+                )
+              ) : (
+                <div style={{ textAlign: 'center', padding: '40px' }}>
+                  <p>Reindirizzamento all'accesso in corso...</p>
+                </div>
+              )
+            )}
+          </>
         )}
       </main>
 
@@ -290,5 +440,13 @@ export const App: React.FC = () => {
         </p>
       </footer>
     </div>
+  );
+};
+
+export const App: React.FC = () => {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 };

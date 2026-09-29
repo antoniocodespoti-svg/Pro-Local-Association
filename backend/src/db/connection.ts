@@ -4,7 +4,9 @@ import type { DatabaseConfig } from './config.ts';
 
 const { Pool } = pg;
 
-export function createPgPool(customConfig?: DatabaseConfig): pg.Pool {
+export type PgPool = InstanceType<typeof Pool>;
+
+export function createPgPool(customConfig?: DatabaseConfig): PgPool {
   const config = customConfig || getDatabaseConfig();
 
   if (config.connectionString) {
