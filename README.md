@@ -2,7 +2,7 @@
 
 Piattaforma digitale per la gestione democratica dell'associazione e vetrina pubblica delle attività dei soci.
 
-> **Stato Progetto:** Fase 3 (Consolidata) — Autenticazione a Sessioni Server-Side, Cookie HttpOnly, CSRF, PostgreSQL (001–004), Session Cleanup & Test Suite (151 test verdi) (Versione package 0.2.4-beta)  
+> **Stato Progetto:** Fase 3 (Consolidata) — Workflow Revisioni Attività & Approvazione Presidenziale REST, Autenticazione a Sessioni Server-Side, Cookie HttpOnly, CSRF, PostgreSQL (001–005), Session Cleanup & Test Suite (204 test verdi: 175 Backend + 29 Frontend) (Versione package 0.2.4-beta)  
 > **Natura Giuridica dell'Ente:** Associazione non riconosciuta (predisposta per eventuale futura iscrizione al RUNTS).  
 > **Due Dimensioni Distinte:** 1. Gestione della vita associativa democratica interna; 2. Portale vetrina neutrale per la visibilità delle attività dei soci.  
 > **Destinazione Architetturale Ufficiale:** Piattaforma Web (React + TypeScript / Backend Node.js + TypeScript REST API) con prototipo Android intatto e funzionante.
@@ -60,6 +60,10 @@ La documentazione è parte integrante del progetto ed è consultabile sia nei fi
 ## 💻 Architettura del Codice
 - **Piattaforma Web (Ufficiale Fase 3 Consolidata):**
   - **Backend (`/backend`):** Node.js + TypeScript REST API (Express), modelli di dominio, policy RBAC server-side, validazione severa input (`ActivityValidator`), doppio driver di persistenza (`DB_DRIVER=memory` e `DB_DRIVER=postgres` con migrazioni transazionali e pool), audit trail immutabile sulle mutazioni.
+  - **Workflow Non Distruttivo di Revisione & Approvazione Presidenziale:**
+    - La modifica di una scheda attività da parte del socio titolare (`PUT /api/activities/:id`) genera o aggiorna una revisione in stato `IN_ATTESA_APPROVAZIONE` senza sovrascrivere la scheda pubblicata live in vetrina.
+    - Il **Presidente** autenticato e con stato associativo `ATTIVO` può consultare la coda delle revisioni pendenti (`GET /api/president/revisions/pending`), esaminare il dettaglio comparato con la scheda corrente (`GET /api/president/revisions/:id`), approvare la revisione pubblicando atomicamente le modifiche (`POST /api/president/revisions/:id/approve`) o rifiutarla con motivazione obbligatoria di almeno 10 caratteri (`POST /api/president/revisions/:id/reject`).
+    - Prevenzione del conflitto di interessi: è vietata l'auto-approvazione e l'auto-rifiuto da parte del Presidente sulla propria scheda attività (`403 Forbidden`).
   - **Autenticazione & Sessioni Server-Side:**
     - Password hashing tramite algoritmo crittografico Scrypt (`node:crypto.scrypt`, salt CSPRNG 16 byte, parametri N=32768, r=8, p=1, keyLen=64, comparazione timing-safe).
     - Prevenzione dell'account enumeration su login (risposta generica 401 sia per credenziali errate sia per utente inesistente).
@@ -70,14 +74,14 @@ La documentazione è parte integrante del progetto ed è consultabile sia nei fi
     - Protezione CSRF: header obbligatorio `X-Requested-With: ProLocalApp` su tutte le richieste mutative (`POST`, `PUT`, `PATCH`, `DELETE`) effettuate con cookie di sessione; restituisce `403 Forbidden` in caso di violazione.
     - Rimozione Demo Auth: il precedente meccanismo transitorio basato su header (`X-Demo-Member-Id`, `X-Demo-Role`) è stato completamente rimosso dal runtime e dai contratti di servizio.
   - **Persistenza & Migrazioni PostgreSQL:**
-    - Migrazioni transazionali DDL disponibili sia come file SQL fisici in `backend/src/db/migrations/` (`001_create_members.sql`, `002_create_business_activities.sql`, `003_create_audit_logs.sql`, `004_create_auth_tables.sql`) sia come stringhe nel runtime `migrator.ts`, con test automatizzato di coerenza semantica tra i due.
-    - Separazione ontologica tra Identità Autenticabile (`UserAccount`) e Membro (`Member`), garantita da vincolo CHECK a livello database: `TECHNICAL_ADMIN` ha `member_id IS NULL`, `MEMBER` ha `member_id` obbligatorio e univoco.
+    - Migrazioni transazionali DDL disponibili sia come file SQL fisici in `backend/src/db/migrations/` (`001_create_members.sql`, `002_create_business_activities.sql`, `003_create_audit_logs.sql`, `004_create_auth_tables.sql`, `005_create_activity_revisions_and_president.sql`) sia come stringhe nel runtime `migrator.ts`, con test automatizzato di coerenza semantica tra i due.
+    - Separazione ontologica tra Identità Autenticabile (`UserAccount`) e Membro (`Member`), garantita da vincolo CHECK a livello database: `TECHNICAL_ADMIN` ha `member_id IS NULL`, `MEMBER` ha `member_id` obbligatorio e univoco; vincolo e indice parziale univoco per il ruolo direttivo `PRESIDENTE` su `members`.
   - **Servizio di Manutenzione Sessioni (`SessionCleanupService`):**
     - Esecuzione periodica automatica ogni 60 minuti tramite invocazione di `sessionRepo.deleteExpired()`.
     - Isolamento dei fallimenti (failure isolation): eventuali errori del database vengono registrati nel log senza arrestare il server HTTP né impedire i cicli successivi.
     - Integrazione nel lifecycle di avvio del server e arresto pulito (graceful shutdown) su segnali di terminazione `SIGTERM` e `SIGINT`.
   - **Frontend (`/frontend`):** React + TypeScript, interfaccia responsive e accessibile. Gestione autenticazione con `AuthContext` e hook `useAuth`, schermata di accesso protetta (`LoginView`), dashboard del socio (`MemberDashboardView`), gestione scheda attività (`ActivityEditView`), console separata per amministratore tecnico (`TechnicalAdminView`), client API configurato con `credentials: 'include'` e header CSRF automatico, gestione centralizzata della scadenza sessione (401), nota permanente di trasparenza (`LegalNotice`).
-  - **Test Suite Automatizzata:** 151 test verificati e superati (122 test Backend, 29 test Frontend, 0 falliti, 0 ignorati).
+  - **Test Suite Automatizzata:** 204 test verificati e superati (175 test Backend su 11 file di test / 31 suite, 29 test Frontend su 3 suite, 0 falliti, 0 ignorati).
 - **Prototipo Android/Kotlin (Preservato):**
   - **Linguaggio:** Kotlin
   - **Interfaccia Utente:** Jetpack Compose (Material Design 3, Responsive Multi-Device: Smartphone, Tablet, Desktop)

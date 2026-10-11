@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "node --experimental-strip-types src/index.ts",
-    "test": "node --experimental-strip-types --test tests/governance_security.test.ts tests/rest_api.test.ts",
+    "test": "node --experimental-strip-types --test tests/governance_security.test.ts tests/api_http.test.ts tests/postgres_repositories.test.ts tests/auth_core.test.ts tests/auth_service.test.ts tests/auth_http.test.ts tests/session_cleanup.test.ts tests/rest_api.test.ts tests/phase1_domain_db.test.ts tests/phase2_service_layer.test.ts tests/phase3_approval_http.test.ts",
     "build": "tsc --noEmit"
   },
   "keywords": [
