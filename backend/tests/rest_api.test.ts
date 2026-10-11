@@ -372,9 +372,20 @@ describe('Pro-Local Phase 2.2 REST API & Security Tests', () => {
       );
 
       assert.strictEqual(res.status, 200);
-      assert.strictEqual(res.body.attivita.nomeAttivita, 'Bottega Artigiana A (Rinnovata)');
-      // Regola di workflow: torna in IN_ATTESA_APPROVAZIONE
-      assert.strictEqual(res.body.attivita.statoPubblicazione, PublicationStatus.IN_ATTESA_APPROVAZIONE);
+      assert.strictEqual(typeof res.body.messaggio, 'string');
+      assert(res.body.messaggio.includes('in attesa di approvazione'));
+
+      // Regola Fase 2 (workflow non distruttivo): la scheda live pubblicata non viene sovrascritta finché la revisione non è approvata
+      assert.strictEqual(res.body.attivita.id, 'act-A');
+      assert.strictEqual(res.body.attivita.nomeAttivita, 'Bottega Artigiana A');
+      assert.strictEqual(res.body.attivita.descrizioneBreve, 'Restauro mobili d\'arte antica');
+      assert.strictEqual(res.body.attivita.statoPubblicazione, PublicationStatus.PUBBLICATA);
+
+      // Verifica che anche l'endpoint pubblico GET /api/activities/act-A continui a esporre la scheda live invariata
+      const publicRes = await makeRequest(server, 'GET', '/api/activities/act-A');
+      assert.strictEqual(publicRes.status, 200);
+      assert.strictEqual(publicRes.body.nomeAttivita, 'Bottega Artigiana A');
+      assert.strictEqual(publicRes.body.descrizioneBreve, 'Restauro mobili d\'arte antica');
     } finally {
       await close();
     }

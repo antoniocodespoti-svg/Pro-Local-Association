@@ -192,8 +192,14 @@ describe('Pro-Local Frontend API Client Integration Tests', () => {
     });
 
     assert(result.messaggio.includes('successo'));
-    assert.strictEqual(result.attivita.nomeAttivita, 'Bottega Restauro e Doratura Tradizionale');
-    assert.strictEqual(result.attivita.statoPubblicazione, 'IN_ATTESA_APPROVAZIONE');
+    assert.strictEqual(
+      result.attivita.nomeAttivita,
+      'Bottega Restauro Tradizionale'
+    );
+    assert.strictEqual(
+      result.attivita.statoPubblicazione,
+      'PUBBLICATA'
+    );
 
     // Verifica che l'ultima chiamata abbia inviato X-Requested-With e nessun X-Demo-*
     const lastHeaders = recordedHeaders[recordedHeaders.length - 1];

@@ -67,11 +67,62 @@ export class AccessControlPolicy {
       return false;
     }
 
-    if (actorRole === ProLocalRole.SOCIO) {
+    if (actorRole === ProLocalRole.SOCIO || actorRole === ProLocalRole.PRESIDENTE) {
       return activity.memberId === actorMemberId;
     }
 
     return false;
+  }
+
+  /**
+   * Verifica se l'attore può approvare una specifica revisione di scheda attività.
+   * Regole di Dominio e Governance:
+   * - Solo il PRESIDENTE può approvare.
+   * - Il PRESIDENTE può approvare SOLO schede di altri soci (revision.memberId !== actorMemberId).
+   * - Anti-autoapprovazione: il PRESIDENTE NON può approvare la propria scheda (revision.memberId === actorMemberId -> false).
+   * - Il SOCIO ordinario non può mai approvare (false).
+   * - L'AMMINISTRATORE_TECNICO non può mai approvare (false).
+   */
+  public static canApproveRevision(
+    actorMemberId: string | null,
+    actorRole: ProLocalRole,
+    revision: { memberId: string }
+  ): boolean {
+    if (actorRole !== ProLocalRole.PRESIDENTE || !actorMemberId) {
+      return false;
+    }
+    // Anti-autoapprovazione
+    if (revision.memberId === actorMemberId) {
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * Verifica se l'attore può rifiutare una specifica revisione di scheda attività.
+   * Stesse regole di governance e anti-autoapprovazione di canApproveRevision.
+   */
+  public static canRejectRevision(
+    actorMemberId: string | null,
+    actorRole: ProLocalRole,
+    revision: { memberId: string }
+  ): boolean {
+    if (actorRole !== ProLocalRole.PRESIDENTE || !actorMemberId) {
+      return false;
+    }
+    // Anti-autoapprovazione
+    if (revision.memberId === actorMemberId) {
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * Verifica se l'attore può consultare la coda delle revisioni pendenti.
+   * Riservata esclusivamente al PRESIDENTE.
+   */
+  public static canViewPendingRevisions(actorRole: ProLocalRole): boolean {
+    return actorRole === ProLocalRole.PRESIDENTE;
   }
 
   /**

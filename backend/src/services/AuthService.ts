@@ -317,7 +317,7 @@ export class AuthService {
       }
 
       membershipStatus = member.statoAssociativo;
-      role = ProLocalRoleConst.SOCIO;
+      role = member.ruoloDirettivo === 'PRESIDENTE' ? ProLocalRoleConst.PRESIDENTE : ProLocalRoleConst.SOCIO;
     }
 
     // Aggiornamento lastAccessedAt per rinnovare l'idle timeout

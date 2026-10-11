@@ -6,6 +6,7 @@ export interface IMemberRepository {
   findById(id: string): Promise<Member | null>;
   findAll(): Promise<Member[]>;
   updateStatus(id: string, newStatus: MembershipStatus): Promise<Member | null>;
+  updateRuoloDirettivo(id: string, ruolo: 'PRESIDENTE' | null): Promise<Member | null>;
 }
 
 export class InMemoryMemberRepository implements IMemberRepository {
@@ -31,6 +32,17 @@ export class InMemoryMemberRepository implements IMemberRepository {
       ...member,
       statoAssociativo: newStatus,
       quotaSocialeInRegola: newStatus === MembershipStatusConst.ATTIVO
+    };
+    this.members.set(id, updated);
+    return { ...updated };
+  }
+
+  async updateRuoloDirettivo(id: string, ruolo: 'PRESIDENTE' | null): Promise<Member | null> {
+    const member = this.members.get(id);
+    if (!member) return null;
+    const updated = {
+      ...member,
+      ruoloDirettivo: ruolo
     };
     this.members.set(id, updated);
     return { ...updated };

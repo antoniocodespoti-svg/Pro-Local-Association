@@ -3,6 +3,7 @@ import assert from 'node:assert';
 import {
   MembershipStatus,
   PublicationStatus,
+  RevisionStatus,
   ProLocalRole,
   SystemAction,
   ActivityCategory
@@ -11,6 +12,7 @@ import type { BusinessActivity, Member } from '../src/domain/models.ts';
 import { AccessControlPolicy } from '../src/domain/policies/AccessControlPolicy.ts';
 import { InMemoryMemberRepository } from '../src/repositories/MemberRepository.ts';
 import { InMemoryBusinessActivityRepository } from '../src/repositories/BusinessActivityRepository.ts';
+import { InMemoryActivityRevisionRepository } from '../src/repositories/ActivityRevisionRepository.ts';
 import { InMemoryAuditLogRepository } from '../src/repositories/AuditLogRepository.ts';
 import { ShowcaseService } from '../src/services/ShowcaseService.ts';
 import { ActivityManagementService } from '../src/services/ActivityManagementService.ts';
@@ -190,14 +192,28 @@ describe('Pro-Local Backend Governance & RBAC Security Tests', () => {
 
   it('ActivityManagementServiceEnforcesOwnership', async () => {
     const activityRepo = new InMemoryBusinessActivityRepository([sampleActivityMemberA, sampleActivityMemberB]);
-    const service = new ActivityManagementService(activityRepo);
+    const revisionRepo = new InMemoryActivityRevisionRepository();
+    const service = new ActivityManagementService(activityRepo, revisionRepo);
 
-    // Modifica lecita della propria attività
+    // Modifica lecita della propria attività (workflow non distruttivo)
     const updated = await service.updateActivity('mem-A', ProLocalRole.SOCIO, 'act-01', {
       descrizioneBreve: 'Nuova descrizione'
     });
-    assert.strictEqual(updated.descrizioneBreve, 'Nuova descrizione');
-    assert.strictEqual(updated.statoPubblicazione, PublicationStatus.IN_ATTESA_APPROVAZIONE);
+
+    // La scheda pubblicata originale restituita e in activityRepo rimane invariata
+    assert.strictEqual(updated.descrizioneBreve, sampleActivityMemberA.descrizioneBreve);
+    assert.strictEqual(updated.statoPubblicazione, PublicationStatus.PUBBLICATA);
+
+    const persistedActivity = await activityRepo.findById('act-01');
+    assert.ok(persistedActivity);
+    assert.strictEqual(persistedActivity.descrizioneBreve, sampleActivityMemberA.descrizioneBreve);
+    assert.strictEqual(persistedActivity.statoPubblicazione, PublicationStatus.PUBBLICATA);
+
+    // La nuova descrizione è salvata nella revisione pendente in revisionRepo
+    const pendingRevision = await revisionRepo.findPendingByActivityId('act-01');
+    assert.ok(pendingRevision, 'Deve essere stata creata una revisione pendente');
+    assert.strictEqual(pendingRevision.descrizioneBreve, 'Nuova descrizione');
+    assert.strictEqual(pendingRevision.revisionStatus, RevisionStatus.IN_ATTESA_APPROVAZIONE);
 
     // Tentativo illecito da parte di socio A su attività di socio B
     await assert.rejects(
@@ -238,11 +254,12 @@ describe('Pro-Local Backend Governance & RBAC Security Tests', () => {
     assert(logs[0].timestamp);
   });
 
-  it('ActivityManagementServiceAuditIntegration: se activityRepo.update fallisce, auditRepo.log NON viene chiamato', async () => {
+  it('ActivityManagementServiceAuditIntegration: se il salvataggio della revisione fallisce, auditRepo.log NON viene chiamato', async () => {
     const activityRepo = new InMemoryBusinessActivityRepository([sampleActivityMemberA]);
-    // Sovrascriviamo update per simulare un errore del database
-    activityRepo.update = async () => {
-      throw new Error('Errore I/O simulato nel database attività');
+    const revisionRepo = new InMemoryActivityRevisionRepository();
+    // Sovrascriviamo create su revisionRepo per simulare un errore del database durante il salvataggio della proposta
+    revisionRepo.create = async () => {
+      throw new Error('Errore I/O simulato nel database revisioni');
     };
 
     const auditRepo = new InMemoryAuditLogRepository();
@@ -252,7 +269,7 @@ describe('Pro-Local Backend Governance & RBAC Security Tests', () => {
       return InMemoryAuditLogRepository.prototype.log.call(auditRepo, entry);
     };
 
-    const service = new ActivityManagementService(activityRepo, auditRepo);
+    const service = new ActivityManagementService(activityRepo, revisionRepo, auditRepo);
 
     await assert.rejects(
       async () => {
@@ -263,9 +280,19 @@ describe('Pro-Local Backend Governance & RBAC Security Tests', () => {
       /Errore I\/O simulato/
     );
 
-    assert.strictEqual(auditLogCalled, false, 'auditRepo.log non deve mai essere invocato se l update fallisce');
+    assert.strictEqual(auditLogCalled, false, 'auditRepo.log non deve mai essere invocato se il salvataggio della revisione fallisce');
     const logs = await auditRepo.findAll();
     assert.strictEqual(logs.length, 0);
+
+    // Nessuna revisione parziale o incoerente deve rimanere salvata
+    const revisions = await revisionRepo.findByActivityId('act-01');
+    assert.strictEqual(revisions.length, 0);
+
+    // L'attività pubblicata originale rimane invariata
+    const persistedActivity = await activityRepo.findById('act-01');
+    assert.ok(persistedActivity);
+    assert.strictEqual(persistedActivity.descrizioneBreve, sampleActivityMemberA.descrizioneBreve);
+    assert.strictEqual(persistedActivity.statoPubblicazione, PublicationStatus.PUBBLICATA);
   });
 
   it('ActivityManagementServiceAuditIntegration: se auditRepo.log fallisce, l errore si propaga', async () => {

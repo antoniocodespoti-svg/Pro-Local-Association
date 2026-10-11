@@ -27,7 +27,7 @@ describe('PostgreSQL Adapter & Migrations Tests (via pg-mem)', () => {
     return { mem, pool };
   }
 
-  it('esegue le migrazioni 001, 002, 003, 004 con successo', async () => {
+  it('esegue le migrazioni 001, 002, 003, 004, 005 con successo', async () => {
     const { pool } = createTestDb();
     const migrator = new DatabaseMigrator(pool);
 
@@ -37,7 +37,8 @@ describe('PostgreSQL Adapter & Migrations Tests (via pg-mem)', () => {
       '001_create_members',
       '002_create_business_activities',
       '003_create_audit_logs',
-      '004_create_auth_tables'
+      '004_create_auth_tables',
+      '005_create_activity_revisions_and_president'
     ]);
 
     const appliedAgain = await migrator.runMigrations();
@@ -302,9 +303,9 @@ describe('PostgreSQL Adapter & Migrations Tests (via pg-mem)', () => {
     const migrator = new DatabaseMigrator(poolWithTracking);
     const result = await migrator.runMigrations();
 
-    assert.strictEqual(result.applied.length, 4, 'Devono essere applicate 4 migrazioni');
-    assert.strictEqual(connectCount, 4, 'Deve essere acquisito un client dedicato per ogni migrazione');
-    assert.strictEqual(releaseCount, 4, 'Tutti i client dedicati devono essere stati rilasciati nel blocco finally');
+    assert.strictEqual(result.applied.length, 5, 'Devono essere applicate 5 migrazioni');
+    assert.strictEqual(connectCount, 5, 'Deve essere acquisito un client dedicato per ogni migrazione');
+    assert.strictEqual(releaseCount, 5, 'Tutti i client dedicati devono essere stati rilasciati nel blocco finally');
   });
 
   it('Audit Immutability: i repository audit sono append-only e non espongono metodi di alterazione o cancellazione', async () => {
@@ -363,7 +364,7 @@ describe('PostgreSQL Adapter & Migrations Tests (via pg-mem)', () => {
 
     // Inizializza schema_migrations ed esegue 001, 002, 003
     await migrator.initMigrationTable();
-    for (const m of MIGRATIONS.filter((mig) => mig.name !== '004_create_auth_tables')) {
+    for (const m of MIGRATIONS.filter((mig) => mig.name.localeCompare('004_create_auth_tables') < 0)) {
       await pool.query(m.sql);
       await pool.query('INSERT INTO schema_migrations (name, applied_at) VALUES ($1, now());', [m.name]);
     }

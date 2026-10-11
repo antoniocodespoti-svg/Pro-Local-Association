@@ -4,20 +4,26 @@ import cors from 'cors';
 import {
   MembershipStatus,
   PublicationStatus,
+  RevisionStatus,
   ProLocalRole,
-  ActivityCategory
+  ActivityCategory,
+  SystemAction
 } from './domain/models.ts';
-import type { Member, BusinessActivity } from './domain/models.ts';
+import type { Member, BusinessActivity, ActivityRevision } from './domain/models.ts';
+import { AccessControlPolicy } from './domain/policies/AccessControlPolicy.ts';
 import type { IMemberRepository } from './repositories/MemberRepository.ts';
 import { InMemoryMemberRepository } from './repositories/MemberRepository.ts';
 import type { IBusinessActivityRepository } from './repositories/BusinessActivityRepository.ts';
 import { InMemoryBusinessActivityRepository } from './repositories/BusinessActivityRepository.ts';
+import type { IActivityRevisionRepository } from './repositories/ActivityRevisionRepository.ts';
+import { InMemoryActivityRevisionRepository } from './repositories/ActivityRevisionRepository.ts';
 import type { IAuditLogRepository } from './repositories/AuditLogRepository.ts';
 import { InMemoryAuditLogRepository } from './repositories/AuditLogRepository.ts';
 import type { IUserAccountRepository } from './repositories/UserAccountRepository.ts';
 import { InMemoryUserAccountRepository } from './repositories/UserAccountRepository.ts';
 import type { ISessionRepository } from './repositories/SessionRepository.ts';
 import { InMemorySessionRepository } from './repositories/SessionRepository.ts';
+import type { Queryable } from './db/migrator.ts';
 import { ScryptPasswordHasher, type IPasswordHasher } from './auth/PasswordHasher.ts';
 import { AuthService } from './services/AuthService.ts';
 import { ShowcaseService } from './services/ShowcaseService.ts';
@@ -39,11 +45,13 @@ import {
 export interface AppRepositoriesOptions {
   memberRepo?: IMemberRepository;
   activityRepo?: IBusinessActivityRepository;
+  revisionRepo?: IActivityRevisionRepository;
   auditRepo?: IAuditLogRepository;
   userAccountRepo?: IUserAccountRepository;
   sessionRepo?: ISessionRepository;
   passwordHasher?: IPasswordHasher;
   authService?: AuthService;
+  dbClient?: Queryable;
 }
 
 export function createProLocalApp(customRepositories?: AppRepositoriesOptions) {
@@ -193,6 +201,8 @@ export function createProLocalApp(customRepositories?: AppRepositoriesOptions) {
   const memberRepo = customRepositories?.memberRepo || new InMemoryMemberRepository(defaultMembers);
   const activityRepo =
     customRepositories?.activityRepo || new InMemoryBusinessActivityRepository(defaultActivities);
+  const revisionRepo =
+    customRepositories?.revisionRepo || new InMemoryActivityRevisionRepository();
   const auditRepo = customRepositories?.auditRepo || new InMemoryAuditLogRepository();
   const userAccountRepo = customRepositories?.userAccountRepo || new InMemoryUserAccountRepository();
   const sessionRepo = customRepositories?.sessionRepo || new InMemorySessionRepository();
@@ -209,7 +219,12 @@ export function createProLocalApp(customRepositories?: AppRepositoriesOptions) {
     });
 
   const showcaseService = new ShowcaseService(activityRepo, memberRepo);
-  const activityManagementService = new ActivityManagementService(activityRepo, auditRepo);
+  const activityManagementService = new ActivityManagementService(
+    activityRepo,
+    revisionRepo,
+    auditRepo,
+    customRepositories?.dbClient
+  );
 
   // Registrazione del middleware di autenticazione globale
   app.use(
@@ -440,6 +455,25 @@ export function createProLocalApp(customRepositories?: AppRepositoriesOptions) {
 
       // Recupero dell'attività (o attività) associata al socio
       const activities = await activityRepo.findByMemberId(memberId);
+      const primaryActivity = activities.length > 0 ? activities[0] : null;
+
+      let revisionePendente: ActivityRevision | null = null;
+      let ultimaRevisione: ActivityRevision | null = null;
+      const revisioniPerAttivita: Record<string, ActivityRevision[]> = {};
+
+      for (const act of activities) {
+        const revs = await revisionRepo.findByActivityId(act.id);
+        const sortedRevs = [...revs]
+          .reverse()
+          .sort((a, b) => b.submittedAt.localeCompare(a.submittedAt));
+        revisioniPerAttivita[act.id] = sortedRevs;
+      }
+
+      if (primaryActivity) {
+        revisionePendente = await revisionRepo.findPendingByActivityId(primaryActivity.id);
+        const primaryRevs = revisioniPerAttivita[primaryActivity.id] || [];
+        ultimaRevisione = primaryRevs.length > 0 ? primaryRevs[0] : null;
+      }
 
       res.status(200).json({
         authMode: 'REAL_SESSION',
@@ -452,8 +486,11 @@ export function createProLocalApp(customRepositories?: AppRepositoriesOptions) {
           statoAssociativo: member.statoAssociativo,
           quotaSocialeInRegola: member.quotaSocialeInRegola
         },
-        attivita: activities.length > 0 ? activities[0] : null,
-        tutteAttivita: activities
+        attivita: primaryActivity,
+        tutteAttivita: activities,
+        revisionePendente,
+        ultimaRevisione,
+        revisioniPerAttivita
       });
     } catch (err: unknown) {
       res.status(500).json({
@@ -531,6 +568,265 @@ export function createProLocalApp(customRepositories?: AppRepositoriesOptions) {
     } catch (err: unknown) {
       res.status(500).json({
         error: 'Errore interno durante l\'aggiornamento dell\'attività.'
+      });
+    }
+  });
+
+  // =========================================================================
+  // 5. PRESIDENT APPROVAL WORKFLOW ENDPOINTS (FASE 3)
+  // - GET /api/president/revisions/pending
+  // - GET /api/president/revisions/:id
+  // - POST /api/president/revisions/:id/approve
+  // - POST /api/president/revisions/:id/reject
+  // =========================================================================
+
+  /**
+   * GET /api/president/revisions/pending
+   * Restituisce al Presidente autorizzato la coda delle revisioni in stato IN_ATTESA_APPROVAZIONE.
+   */
+  app.get('/api/president/revisions/pending', async (req: Request, res: Response) => {
+    try {
+      const auth = req.authContext;
+      if (!auth || !auth.isRealAuth) {
+        return res.status(401).json({
+          error: 'Non autenticato: effettuare il login per accedere alla coda delle revisioni.'
+        });
+      }
+
+      if (
+        auth.role !== ProLocalRole.PRESIDENTE ||
+        !auth.memberId ||
+        (auth.authenticatedActor?.membershipStatus &&
+          auth.authenticatedActor.membershipStatus !== MembershipStatus.ATTIVO)
+      ) {
+        return res.status(403).json({
+          error:
+            'Accesso negato: solo il Presidente in carica con stato associativo attivo può consultare la coda delle revisioni in attesa di approvazione.'
+        });
+      }
+
+      const revisions = await activityManagementService.getPendingRevisions(auth.role);
+
+      if (auditRepo) {
+        await auditRepo.log({
+          id: `audit-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+          actorId: auth.memberId,
+          action: SystemAction.CONSULTAZIONE_CODA_REVISIONI,
+          resourceType: 'ACTIVITY_REVISION_QUEUE',
+          resourceId: 'pending',
+          timestamp: new Date().toISOString(),
+          metadata: {
+            pendingCount: revisions.length
+          }
+        });
+      }
+
+      return res.status(200).json({
+        total: revisions.length,
+        revisions
+      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : '';
+      if (message.includes('Accesso negato')) {
+        return res.status(403).json({ error: message });
+      }
+      return res.status(500).json({
+        error: 'Errore interno durante il recupero della coda delle revisioni.'
+      });
+    }
+  });
+
+  /**
+   * GET /api/president/revisions/:id
+   * Restituisce il dettaglio di una specifica revisione insieme alla scheda attività pubblicata/corrente.
+   */
+  app.get('/api/president/revisions/:id', async (req: Request, res: Response) => {
+    try {
+      const revisionId = String(req.params.id);
+      const auth = req.authContext;
+
+      if (!auth || !auth.isRealAuth) {
+        return res.status(401).json({
+          error: 'Non autenticato: effettuare il login per consultare il dettaglio della revisione.'
+        });
+      }
+
+      if (
+        auth.role !== ProLocalRole.PRESIDENTE ||
+        !auth.memberId ||
+        (auth.authenticatedActor?.membershipStatus &&
+          auth.authenticatedActor.membershipStatus !== MembershipStatus.ATTIVO)
+      ) {
+        return res.status(403).json({
+          error:
+            'Accesso negato: solo il Presidente in carica con stato associativo attivo può consultare il dettaglio delle revisioni.'
+        });
+      }
+
+      const revision = await activityManagementService.getRevisionById(revisionId);
+      if (!revision) {
+        return res.status(404).json({
+          error: 'Revisione non trovata.'
+        });
+      }
+
+      const currentActivity = await activityRepo.findById(revision.activityId);
+      if (!currentActivity) {
+        return res.status(404).json({
+          error: 'Attività collegata alla revisione non trovata.'
+        });
+      }
+
+      const canReview =
+        revision.revisionStatus === RevisionStatus.IN_ATTESA_APPROVAZIONE &&
+        AccessControlPolicy.canApproveRevision(auth.memberId, auth.role, revision);
+
+      return res.status(200).json({
+        revision,
+        currentActivity,
+        canReview
+      });
+    } catch (err: unknown) {
+      return res.status(500).json({
+        error: 'Errore interno durante il recupero del dettaglio della revisione.'
+      });
+    }
+  });
+
+  /**
+   * POST /api/president/revisions/:id/approve
+   * Approva una revisione in stato IN_ATTESA_APPROVAZIONE (solo Presidente, vietata auto-approvazione).
+   */
+  app.post('/api/president/revisions/:id/approve', async (req: Request, res: Response) => {
+    try {
+      const revisionId = String(req.params.id);
+      const auth = req.authContext;
+
+      if (!auth || !auth.isRealAuth) {
+        return res.status(401).json({
+          error: 'Non autenticato: effettuare il login per approvare una revisione.'
+        });
+      }
+
+      if (
+        auth.role !== ProLocalRole.PRESIDENTE ||
+        !auth.memberId ||
+        (auth.authenticatedActor?.membershipStatus &&
+          auth.authenticatedActor.membershipStatus !== MembershipStatus.ATTIVO)
+      ) {
+        return res.status(403).json({
+          error:
+            'Accesso negato: solo il Presidente in carica con stato associativo attivo può approvare le revisioni delle attività.'
+        });
+      }
+
+      try {
+        const result = await activityManagementService.approveRevision(
+          auth.memberId,
+          auth.role,
+          revisionId
+        );
+
+        return res.status(200).json({
+          messaggio:
+            'Revisione approvata con successo. La scheda attività pubblicata è stata aggiornata.',
+          attivita: result.activity,
+          revisione: result.revision
+        });
+      } catch (serviceErr: unknown) {
+        const message = serviceErr instanceof Error ? serviceErr.message : '';
+        if (
+          message.includes('Revisione non trovata') ||
+          message.includes('Attività collegata non trovata')
+        ) {
+          return res.status(404).json({ error: message });
+        }
+        if (message.includes('Accesso negato') || message.includes('conflitto di interessi')) {
+          return res.status(403).json({ error: message });
+        }
+        if (message.includes('Impossibile approvare')) {
+          return res.status(409).json({ error: message });
+        }
+        if (message) {
+          return res.status(400).json({ error: message });
+        }
+        return res.status(500).json({
+          error: "Errore interno durante l'approvazione della revisione."
+        });
+      }
+    } catch (err: unknown) {
+      return res.status(500).json({
+        error: "Errore interno durante l'approvazione della revisione."
+      });
+    }
+  });
+
+  /**
+   * POST /api/president/revisions/:id/reject
+   * Rifiuta una revisione in stato IN_ATTESA_APPROVAZIONE con motivazione obbligatoria (>= 10 caratteri).
+   */
+  app.post('/api/president/revisions/:id/reject', async (req: Request, res: Response) => {
+    try {
+      const revisionId = String(req.params.id);
+      const auth = req.authContext;
+
+      if (!auth || !auth.isRealAuth) {
+        return res.status(401).json({
+          error: 'Non autenticato: effettuare il login per rifiutare una revisione.'
+        });
+      }
+
+      if (
+        auth.role !== ProLocalRole.PRESIDENTE ||
+        !auth.memberId ||
+        (auth.authenticatedActor?.membershipStatus &&
+          auth.authenticatedActor.membershipStatus !== MembershipStatus.ATTIVO)
+      ) {
+        return res.status(403).json({
+          error:
+            'Accesso negato: solo il Presidente in carica con stato associativo attivo può rifiutare le revisioni delle attività.'
+        });
+      }
+
+      const rawReason = req.body?.reason ?? req.body?.motivazione;
+      const reason = typeof rawReason === 'string' ? rawReason : '';
+
+      try {
+        const rejectedRevision = await activityManagementService.rejectRevision(
+          auth.memberId,
+          auth.role,
+          revisionId,
+          reason
+        );
+
+        return res.status(200).json({
+          messaggio: 'Revisione rifiutata. La scheda attività pubblicata è rimasta invariata.',
+          revisione: rejectedRevision
+        });
+      } catch (serviceErr: unknown) {
+        const message = serviceErr instanceof Error ? serviceErr.message : '';
+        if (message.includes('motivazione del rifiuto è obbligatoria')) {
+          return res.status(400).json({ error: message });
+        }
+        if (message.includes('Revisione non trovata')) {
+          return res.status(404).json({ error: message });
+        }
+        if (message.includes('Accesso negato') || message.includes('propria scheda attività')) {
+          return res.status(403).json({ error: message });
+        }
+        if (message.includes('Impossibile rifiutare')) {
+          return res.status(409).json({ error: message });
+        }
+        if (message) {
+          return res.status(400).json({ error: message });
+        }
+        return res.status(500).json({
+          error: 'Errore interno durante il rifiuto della revisione.'
+        });
+      }
+    } catch (err: unknown) {
+      return res.status(500).json({
+        error: 'Errore interno durante il rifiuto della revisione.'
       });
     }
   });

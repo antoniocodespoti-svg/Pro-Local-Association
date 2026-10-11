@@ -729,7 +729,12 @@ describe('HTTP Authentication & Cookie-Based Session Lifecycle Tests (Fase 3.4)'
 
       assert.strictEqual(updateRes.status, 200);
       const updateBody = await updateRes.json();
-      assert.strictEqual(updateBody.attivita.nomeAttivita, 'Bottega di Mario Aggiornata');
+      assert(updateBody.attivita, 'La risposta deve includere la scheda attività');
+      // Il workflow non distruttivo della Fase 2 preserva la scheda pubblicata fino ad approvazione
+      assert.strictEqual(updateBody.attivita.id, 'act-01');
+      assert.strictEqual(updateBody.attivita.nomeAttivita, 'Bottega di Mario');
+      assert.strictEqual(updateBody.attivita.descrizioneBreve, 'Restauro mobili antichi e creazioni in legno');
+      assert.strictEqual(updateBody.attivita.statoPubblicazione, PublicationStatus.PUBBLICATA);
     });
 
     it('CSRF NON BLOCCA GET pubblico o endpoint login iniziale senza sessione', async () => {

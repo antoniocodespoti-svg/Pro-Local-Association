@@ -3,6 +3,7 @@ import { createPgPool } from './db/connection.ts';
 import { DatabaseMigrator } from './db/migrator.ts';
 import { PostgresMemberRepository } from './repositories/PostgresMemberRepository.ts';
 import { PostgresBusinessActivityRepository } from './repositories/PostgresBusinessActivityRepository.ts';
+import { PostgresActivityRevisionRepository } from './repositories/PostgresActivityRevisionRepository.ts';
 import { PostgresAuditLogRepository } from './repositories/PostgresAuditLogRepository.ts';
 import { PostgresUserAccountRepository } from './repositories/PostgresUserAccountRepository.ts';
 import { PostgresSessionRepository } from './repositories/PostgresSessionRepository.ts';
@@ -37,9 +38,11 @@ async function bootstrap() {
     customRepos = {
       memberRepo: new PostgresMemberRepository(pool),
       activityRepo: new PostgresBusinessActivityRepository(pool),
+      revisionRepo: new PostgresActivityRevisionRepository(pool),
       auditRepo: new PostgresAuditLogRepository(pool),
       userAccountRepo: new PostgresUserAccountRepository(pool),
-      sessionRepo: new PostgresSessionRepository(pool)
+      sessionRepo: new PostgresSessionRepository(pool),
+      dbClient: pool
     };
   }
 
@@ -64,6 +67,10 @@ async function bootstrap() {
     console.log(' - GET /api/activities/:id');
     console.log(' - GET /api/members/me');
     console.log(' - PUT /api/activities/:id');
+    console.log(' - GET /api/president/revisions/pending');
+    console.log(' - GET /api/president/revisions/:id');
+    console.log(' - POST /api/president/revisions/:id/approve');
+    console.log(' - POST /api/president/revisions/:id/reject');
   });
 
   const gracefulShutdown = () => {

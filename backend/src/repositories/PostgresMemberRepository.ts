@@ -24,14 +24,16 @@ export class PostgresMemberRepository implements IMemberRepository {
       dataIscrizione: dataIscrizioneStr,
       statoAssociativo: row.membership_status as MembershipStatus,
       quotaSocialeInRegola: Boolean(row.quota_sociale_in_regola),
-      noteAmministrativeInterne: row.note_amministrative_interne || undefined
+      noteAmministrativeInterne: row.note_amministrative_interne || undefined,
+      ruoloDirettivo: row.ruolo_direttivo || null
     };
   }
 
   async findById(id: string): Promise<Member | null> {
     const res = await this.client.query(
       `SELECT id, codice_socio, nome_cognome, email_demo, data_iscrizione,
-              membership_status, quota_sociale_in_regola, note_amministrative_interne
+              membership_status, quota_sociale_in_regola, note_amministrative_interne,
+              ruolo_direttivo
        FROM members
        WHERE id = $1;`,
       [id]
@@ -46,7 +48,8 @@ export class PostgresMemberRepository implements IMemberRepository {
   async findAll(): Promise<Member[]> {
     const res = await this.client.query(
       `SELECT id, codice_socio, nome_cognome, email_demo, data_iscrizione,
-              membership_status, quota_sociale_in_regola, note_amministrative_interne
+              membership_status, quota_sociale_in_regola, note_amministrative_interne,
+              ruolo_direttivo
        FROM members
        ORDER BY id ASC;`
     );
@@ -62,8 +65,27 @@ export class PostgresMemberRepository implements IMemberRepository {
            updated_at = CURRENT_TIMESTAMP
        WHERE id = $3
        RETURNING id, codice_socio, nome_cognome, email_demo, data_iscrizione,
-                 membership_status, quota_sociale_in_regola, note_amministrative_interne;`,
+                 membership_status, quota_sociale_in_regola, note_amministrative_interne,
+                 ruolo_direttivo;`,
       [newStatus, quotaInRegola, id]
+    );
+
+    if (res.rows.length === 0) {
+      return null;
+    }
+    return this.mapRowToMember(res.rows[0]);
+  }
+
+  async updateRuoloDirettivo(id: string, ruolo: 'PRESIDENTE' | null): Promise<Member | null> {
+    const res = await this.client.query(
+      `UPDATE members
+       SET ruolo_direttivo = $1,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $2
+       RETURNING id, codice_socio, nome_cognome, email_demo, data_iscrizione,
+                 membership_status, quota_sociale_in_regola, note_amministrative_interne,
+                 ruolo_direttivo;`,
+      [ruolo, id]
     );
 
     if (res.rows.length === 0) {
@@ -76,10 +98,12 @@ export class PostgresMemberRepository implements IMemberRepository {
     const res = await this.client.query(
       `INSERT INTO members (
         id, codice_socio, nome_cognome, email_demo, data_iscrizione,
-        membership_status, quota_sociale_in_regola, note_amministrative_interne
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        membership_status, quota_sociale_in_regola, note_amministrative_interne,
+        ruolo_direttivo
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       RETURNING id, codice_socio, nome_cognome, email_demo, data_iscrizione,
-                membership_status, quota_sociale_in_regola, note_amministrative_interne;`,
+                membership_status, quota_sociale_in_regola, note_amministrative_interne,
+                ruolo_direttivo;`,
       [
         member.id,
         member.codiceSocio,
@@ -88,7 +112,8 @@ export class PostgresMemberRepository implements IMemberRepository {
         member.dataIscrizione,
         member.statoAssociativo,
         member.quotaSocialeInRegola,
-        member.noteAmministrativeInterne || null
+        member.noteAmministrativeInterne || null,
+        member.ruoloDirettivo || null
       ]
     );
     return this.mapRowToMember(res.rows[0]);

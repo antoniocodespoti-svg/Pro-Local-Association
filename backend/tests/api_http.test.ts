@@ -406,13 +406,44 @@ describe('Pro-Local REST API Integration & Security Tests', () => {
 
     assert.strictEqual(res.status, 200);
     const body = await res.json();
-    assert.strictEqual(body.attivita.nomeAttivita, 'Bottega Artigiana A (Modificata)');
-    // Regola fondamentale di workflow: la modifica reimposta a IN_ATTESA_APPROVAZIONE
+    assert(body.messaggio, 'La risposta deve contenere il messaggio di conferma');
+    assert(body.attivita, 'La risposta deve contenere la scheda attività');
+
+    // Regola canonica Fase 2 (workflow non distruttivo):
+    // la modifica di un socio genera una revisione pendente senza sovrascrivere la scheda pubblicata live
+    assert.strictEqual(body.attivita.id, 'act-pubblica-A');
+    assert.strictEqual(
+      body.attivita.nomeAttivita,
+      'Attività Pubblica di A',
+      'Il nome della scheda pubblicata deve rimanere invariato fino ad approvazione'
+    );
+    assert.strictEqual(
+      body.attivita.descrizioneBreve,
+      'Restauro artistico e ligneo',
+      'La descrizione breve pubblicata deve rimanere invariata fino ad approvazione'
+    );
+    assert.strictEqual(
+      body.attivita.descrizioneCompleta,
+      'Laboratorio artigiano con esperienza decennale nel restauro conservativo.',
+      'La descrizione completa pubblicata deve rimanere invariata fino ad approvazione'
+    );
+    assert.strictEqual(
+      body.attivita.localita,
+      'Borgo Storico',
+      'La località pubblicata deve rimanere invariata fino ad approvazione'
+    );
     assert.strictEqual(
       body.attivita.statoPubblicazione,
-      PublicationStatus.IN_ATTESA_APPROVAZIONE,
-      'Dopo la modifica la scheda deve passare a IN_ATTESA_APPROVAZIONE'
+      PublicationStatus.PUBBLICATA,
+      'La scheda live deve restare PUBBLICATA mentre la revisione è in attesa di approvazione'
     );
+
+    // Verifica ulteriore che la vetrina pubblica continui a servire i dati pubblicati originali (HTTP 200 = scheda PUBBLICATA)
+    const publicDetailRes = await fetch(`${baseUrl}/api/activities/act-pubblica-A`);
+    assert.strictEqual(publicDetailRes.status, 200);
+    const publicDetail = await publicDetailRes.json();
+    assert.strictEqual(publicDetail.nomeAttivita, 'Attività Pubblica di A');
+    assert.strictEqual(publicDetail.descrizioneBreve, 'Restauro artistico e ligneo');
   });
 
   it('PUT /api/activities/:id - Socio A tenta di modificare l\'attività di Socio B -> 403 FORBIDDEN', async () => {
@@ -550,7 +581,13 @@ describe('Pro-Local REST API Integration & Security Tests', () => {
     assert.strictEqual(latest.action, 'MODIFICA_ATTIVITA');
     assert(latest.timestamp, 'timestamp deve essere valorizzato');
     assert(latest.metadata, 'metadata deve essere presente');
-    assert.deepStrictEqual((latest.metadata as any).newPublicationStatus, PublicationStatus.IN_ATTESA_APPROVAZIONE);
+
+    const meta = latest.metadata as Record<string, unknown>;
+    assert.strictEqual(typeof meta.revisionId, 'string', 'revisionId deve essere valorizzato nei metadata');
+    assert((meta.revisionId as string).length > 0, 'revisionId non deve essere vuoto');
+    assert.strictEqual(meta.isDraft, true, 'isDraft deve essere true nei metadata');
+    assert.strictEqual(meta.liveActivityPreserved, true, 'liveActivityPreserved deve essere true nei metadata');
+    assert(Array.isArray(meta.modifiedFields), 'modifiedFields deve essere presente come array');
   });
 
   it('PUT /api/activities/:id - richiesta non autorizzata o respinta NON genera record in audit_logs', async () => {

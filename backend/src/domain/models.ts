@@ -85,7 +85,12 @@ export const SystemAction = {
 
   // Operazioni su attività
   MODIFICA_ATTIVITA: 'MODIFICA_ATTIVITA',
-  RICHIESTA_PUBBLICAZIONE_ATTIVITA: 'RICHIESTA_PUBBLICAZIONE_ATTIVITA'
+  RICHIESTA_PUBBLICAZIONE_ATTIVITA: 'RICHIESTA_PUBBLICAZIONE_ATTIVITA',
+
+  // Workflow approvativo vetrina (Fase 1)
+  CONSULTAZIONE_CODA_REVISIONI: 'CONSULTAZIONE_CODA_REVISIONI',
+  APPROVAZIONE_REVISIONE_ATTIVITA: 'APPROVAZIONE_REVISIONE_ATTIVITA',
+  RIFIUTO_REVISIONE_ATTIVITA: 'RIFIUTO_REVISIONE_ATTIVITA'
 } as const;
 export type SystemAction = (typeof SystemAction)[keyof typeof SystemAction];
 
@@ -102,6 +107,44 @@ export interface Member {
   statoAssociativo: MembershipStatus;
   quotaSocialeInRegola: boolean;
   noteAmministrativeInterne?: string;
+  ruoloDirettivo?: 'PRESIDENTE' | null;
+}
+
+/**
+ * Stato della revisione proposta per una scheda attività.
+ */
+export const RevisionStatus = {
+  IN_ATTESA_APPROVAZIONE: 'IN_ATTESA_APPROVAZIONE',
+  PUBBLICATA: 'PUBBLICATA',
+  RIFIUTATA: 'RIFIUTATA'
+} as const;
+export type RevisionStatus = (typeof RevisionStatus)[keyof typeof RevisionStatus];
+
+/**
+ * Revisione/bozza di una scheda attività in attesa di approvazione o storicizzata.
+ */
+export interface ActivityRevision {
+  id: string;
+  activityId: string;
+  memberId: string;
+  nomeAttivita: string;
+  categoria: ActivityCategory;
+  descrizioneBreve: string;
+  descrizioneCompleta: string;
+  serviziOfferti: string[];
+  localita: string;
+  indirizzoPubblico?: string;
+  telefonoPubblico?: string;
+  emailPubblica?: string;
+  sitoWeb?: string;
+  socialInstagram?: string;
+  socialLinkedin?: string;
+  orariApertura?: string;
+  revisionStatus: RevisionStatus;
+  submittedAt: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
+  reviewNotes?: string;
 }
 
 /**
